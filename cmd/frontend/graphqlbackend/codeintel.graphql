@@ -175,6 +175,12 @@ extend type Query {
         'LSIFUploadConnection.pageInfo.endCursor' that is returned.
         """
         after: String
+
+        """
+        When specified, merges the list of existing uploads with data from
+        uploads that have been deleted but for which audit logs still exist.
+        """
+        includeDeleted: Boolean
     ): LSIFUploadConnection!
 
     """

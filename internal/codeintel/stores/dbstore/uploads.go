@@ -3,6 +3,7 @@ package dbstore
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"sort"
 	"strconv"
@@ -322,6 +323,7 @@ type GetUploadsOptions struct {
 	LastRetentionScanBefore *time.Time
 	AllowExpired            bool
 	AllowDeletedRepo        bool
+	AllowDeletedUpload      bool
 	OldestFirst             bool
 	Limit                   int
 	Offset                  int
@@ -359,7 +361,7 @@ func (s *Store) GetUploads(ctx context.Context, opts GetUploadsOptions) (_ []Upl
 	defer func() { err = tx.Done(err) }()
 
 	conds := make([]*sqlf.Query, 0, 12)
-	cteDefinitions := make([]cteDefinition, 0, 2)
+	cteDefinitions := make([]cteDefinition, 0, 3)
 
 	if opts.RepositoryID != 0 {
 		conds = append(conds, sqlf.Sprintf("u.repository_id = %s", opts.RepositoryID))
@@ -411,6 +413,14 @@ func (s *Store) GetUploads(ctx context.Context, opts GetUploadsOptions) (_ []Upl
 			WHERE rd.pkg_id = %s AND rd.rank = 1
 		)`, opts.DependentOf))
 	}
+
+	if opts.AllowDeletedRepo {
+		cteDefinitions = append(cteDefinitions, cteDefinition{
+			name:       "deleted_uploads",
+			definition: sqlf.Sprintf(deletedUploadsFromAuditLogsCTEQuery),
+		})
+	}
+
 	if opts.UploadedBefore != nil {
 		conds = append(conds, sqlf.Sprintf("u.uploaded_at < %s", *opts.UploadedBefore))
 	}
@@ -442,6 +452,22 @@ func (s *Store) GetUploads(ctx context.Context, opts GetUploadsOptions) (_ []Upl
 	} else {
 		orderExpression = sqlf.Sprintf("uploaded_at DESC")
 	}
+
+	fmt.Println(sqlf.Sprintf(
+		getUploadsQuery,
+		buildCTEPrefix(cteDefinitions),
+		sqlf.Join(conds, " AND "),
+		orderExpression,
+		opts.Limit,
+		opts.Offset,
+	).Query(sqlf.PostgresBindVar), sqlf.Sprintf(
+		getUploadsQuery,
+		buildCTEPrefix(cteDefinitions),
+		sqlf.Join(conds, " AND "),
+		orderExpression,
+		opts.Limit,
+		opts.Offset,
+	).Args())
 
 	uploads, totalCount, err := scanUploadsWithCount(tx.Store.Query(ctx, sqlf.Sprintf(
 		getUploadsQuery,
@@ -512,6 +538,59 @@ ON u.id = s.id
 JOIN repo ON repo.id = u.repository_id
 WHERE %s ORDER BY %s LIMIT %d OFFSET %d
 `
+
+const deletedUploadsFromAuditLogsCTEQuery = `
+SELECT DISTINCT ON(upload_id) *
+FROM lsif_uploads_audit_logs
+WHERE record_deleted_at IS NOT NULL
+ORDER BY upload_id, sequence DESC
+`
+
+/*
+SELECT u.id,
+       u.commit,
+       u.root,
+       EXISTS(SELECT 1
+              FROM lsif_uploads_visible_at_tip uvt
+              WHERE uvt.repository_id = u.repository_id AND uvt.upload_id = u.id) AS visible_at_tip,
+       COALESCE(u.uploaded_at, ua.uploaded_at) AS uploaded_at,
+       u.state,
+       u.failure_message,
+       u.started_at,
+       u.finished_at,
+       u.process_after,
+       u.num_resets,
+       u.num_failures,
+       u.repository_id,
+       repo.name,
+       u.indexer,
+       u.indexer_version,
+       u.num_parts,
+       u.uploaded_parts,
+       u.upload_size,
+       u.associated_index_id,
+       s.rank,
+       COUNT(*) OVER () AS count
+FROM lsif_uploads u
+LEFT JOIN (
+    SELECT r.id,
+           ROW_NUMBER() OVER (ORDER BY COALESCE(r.process_after, r.uploaded_at), r.id) as rank
+    FROM lsif_uploads_with_repository_name r
+    WHERE r.state = 'queued'
+) s
+ON u.id = s.id
+JOIN repo ON repo.id = u.repository_id
+FULL JOIN (
+    SELECT DISTINCT ON(upload_id) *
+    FROM lsif_uploads_audit_logs
+    WHERE record_deleted_at IS NOT NULL
+    ORDER BY upload_id, sequence DESC
+) AS ua ON ua.upload_id = u.id AND ua.repository_id = repo.id
+WHERE u.state != 'deleted'
+  AND repo.deleted_at IS NULL
+  OR u.id IS NULL
+ORDER BY COALESCE(u.uploaded_at, ua.uploaded_at) DESC
+*/
 
 var rankedDependencyCandidateCTEQuery = `
 SELECT
