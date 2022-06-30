@@ -40,6 +40,8 @@ export const CodeIntelStateDescription: FunctionComponent<React.PropsWithChildre
         <span className={className}>
             {upperFirst(typeName)} failed to complete: <ErrorMessage error={failure} />
         </span>
+    ) : state === LSIFUploadState.DELETED ? (
+        <span className={className}>{upperFirst(typeName)} is deleted.</span>
     ) : (
         <></>
     )

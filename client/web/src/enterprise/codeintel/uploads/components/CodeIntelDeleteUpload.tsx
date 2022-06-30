@@ -17,7 +17,7 @@ export const CodeIntelDeleteUpload: FunctionComponent<React.PropsWithChildren<Co
     deleteUpload,
     deletionOrError,
 }) =>
-    state === LSIFUploadState.DELETING ? (
+    state === LSIFUploadState.DELETING || state === LSIFUploadState.DELETED ? (
         <></>
     ) : (
         <Button

@@ -33,6 +33,8 @@ export const CodeIntelStateLabel: FunctionComponent<React.PropsWithChildren<Code
         <span className={classNames(labelClassNames, className)}>Completed</span>
     ) : state === LSIFUploadState.ERRORED || state === LSIFIndexState.ERRORED ? (
         <span className={classNames(labelClassNames, className)}>Failed</span>
+    ) : state === LSIFUploadState.DELETED ? (
+        <span className={classNames(labelClassNames, className)}>Deleted</span>
     ) : (
         <></>
     )

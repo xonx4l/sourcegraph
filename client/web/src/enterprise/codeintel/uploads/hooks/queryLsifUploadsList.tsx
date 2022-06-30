@@ -81,7 +81,7 @@ export const queryLsifUploadsList = (
         dependentOf: dependentOf ?? null,
         first: first ?? null,
         after: after ?? null,
-        includeDeleted: includeDeleted ?? null,
+        includeDeleted: true,
     }
 
     return from(

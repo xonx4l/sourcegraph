@@ -3,6 +3,7 @@ import { FunctionComponent } from 'react'
 import classNames from 'classnames'
 import AlertCircleIcon from 'mdi-react/AlertCircleIcon'
 import CheckCircleIcon from 'mdi-react/CheckCircleIcon'
+import DeleteCircleIcon from 'mdi-react/DeleteCircleIcon'
 import FileUploadIcon from 'mdi-react/FileUploadIcon'
 import TimerSandIcon from 'mdi-react/TimerSandIcon'
 
@@ -31,6 +32,8 @@ export const CodeIntelStateIcon: FunctionComponent<React.PropsWithChildren<CodeI
         <CheckCircleIcon className={classNames('text-success', className)} />
     ) : state === LSIFUploadState.ERRORED || state === LSIFIndexState.ERRORED ? (
         <AlertCircleIcon className={classNames('text-danger', className)} />
+    ) : state === LSIFUploadState.DELETED ? (
+        <DeleteCircleIcon className={classNames('text-muted', className)} />
     ) : (
         <></>
     )

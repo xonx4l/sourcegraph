@@ -3,7 +3,6 @@ package dbstore
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"sort"
 	"strconv"
@@ -211,7 +210,7 @@ FROM lsif_uploads u
 LEFT JOIN (` + uploadRankQueryFragment + `) s
 ON u.id = s.id
 JOIN repo ON repo.id = u.repository_id
-WHERE repo.deleted_at IS NULL AND u.state != 'deleted' AND u.id = %s AND %s
+WHERE repo.deleted_at IS NULL AND u.id = %s AND %s
 `
 
 const visibleAtTipSubselectQuery = `SELECT 1 FROM lsif_uploads_visible_at_tip uvt WHERE uvt.repository_id = u.repository_id AND uvt.upload_id = u.id`
@@ -243,6 +242,9 @@ func (s *Store) GetUploadsByIDs(ctx context.Context, ids ...int) (_ []Upload, er
 
 const getUploadsByIDsQuery = `
 -- source: internal/codeintel/stores/dbstore/uploads.go:GetUploadsByIDs
+WITH deleted_uploads AS (
+	` + deletedUploadsFromAuditLogsCTEQuery + `
+)
 SELECT
 	u.id,
 	u.commit,
@@ -265,11 +267,35 @@ SELECT
 	u.upload_size,
 	u.associated_index_id,
 	s.rank
-FROM lsif_uploads u
+FROM (
+	SELECT
+		id,
+		commit,
+		root,
+		uploaded_at,
+		state,
+		failure_message,
+		started_at,
+		finished_at,
+		process_after,
+		num_resets,
+		num_failures,
+		repository_id,
+		indexer,
+		indexer_version,
+		num_parts,
+		uploaded_parts,
+		upload_size,
+		associated_index_id
+	FROM lsif_uploads
+	UNION ALL
+	SELECT *
+	FROM deleted_uploads
+) AS u
 LEFT JOIN (` + uploadRankQueryFragment + `) s
 ON u.id = s.id
 JOIN repo ON repo.id = u.repository_id
-WHERE repo.deleted_at IS NULL AND u.state != 'deleted' AND u.id IN (%s) AND %s
+WHERE repo.deleted_at IS NULL AND u.id IN (%s) AND %s
 `
 
 // DeleteUploadsStuckUploading soft deletes any upload record that has been uploading since the given time.
@@ -362,6 +388,7 @@ func (s *Store) GetUploads(ctx context.Context, opts GetUploadsOptions) (_ []Upl
 
 	conds := make([]*sqlf.Query, 0, 12)
 	cteDefinitions := make([]cteDefinition, 0, 3)
+	sourceTableExpr := sqlf.Sprintf("lsif_uploads u")
 
 	if opts.RepositoryID != 0 {
 		conds = append(conds, sqlf.Sprintf("u.repository_id = %s", opts.RepositoryID))
@@ -371,7 +398,7 @@ func (s *Store) GetUploads(ctx context.Context, opts GetUploadsOptions) (_ []Upl
 	}
 	if opts.State != "" {
 		conds = append(conds, makeStateCondition(opts.State))
-	} else {
+	} else if !opts.AllowDeletedUpload {
 		conds = append(conds, sqlf.Sprintf("u.state != 'deleted'"))
 	}
 	if opts.VisibleAtTip {
@@ -414,11 +441,37 @@ func (s *Store) GetUploads(ctx context.Context, opts GetUploadsOptions) (_ []Upl
 		)`, opts.DependentOf))
 	}
 
-	if opts.AllowDeletedRepo {
+	if opts.AllowDeletedUpload {
 		cteDefinitions = append(cteDefinitions, cteDefinition{
 			name:       "deleted_uploads",
 			definition: sqlf.Sprintf(deletedUploadsFromAuditLogsCTEQuery),
 		})
+
+		sourceTableExpr = sqlf.Sprintf(`(
+			SELECT
+				id,
+				commit,
+				root,
+				uploaded_at,
+				state,
+				failure_message,
+				started_at,
+				finished_at,
+				process_after,
+				num_resets,
+				num_failures,
+				repository_id,
+				indexer,
+				indexer_version,
+				num_parts,
+				uploaded_parts,
+				upload_size,
+				associated_index_id
+			FROM lsif_uploads
+			UNION ALL
+			SELECT *
+			FROM deleted_uploads
+		) AS u`)
 	}
 
 	if opts.UploadedBefore != nil {
@@ -453,25 +506,10 @@ func (s *Store) GetUploads(ctx context.Context, opts GetUploadsOptions) (_ []Upl
 		orderExpression = sqlf.Sprintf("uploaded_at DESC")
 	}
 
-	fmt.Println(sqlf.Sprintf(
-		getUploadsQuery,
-		buildCTEPrefix(cteDefinitions),
-		sqlf.Join(conds, " AND "),
-		orderExpression,
-		opts.Limit,
-		opts.Offset,
-	).Query(sqlf.PostgresBindVar), sqlf.Sprintf(
-		getUploadsQuery,
-		buildCTEPrefix(cteDefinitions),
-		sqlf.Join(conds, " AND "),
-		orderExpression,
-		opts.Limit,
-		opts.Offset,
-	).Args())
-
 	uploads, totalCount, err := scanUploadsWithCount(tx.Store.Query(ctx, sqlf.Sprintf(
 		getUploadsQuery,
 		buildCTEPrefix(cteDefinitions),
+		sourceTableExpr,
 		sqlf.Join(conds, " AND "),
 		orderExpression,
 		opts.Limit,
@@ -532,7 +570,7 @@ SELECT
 	u.associated_index_id,
 	s.rank,
 	COUNT(*) OVER() AS count
-FROM lsif_uploads u
+FROM %s
 LEFT JOIN (` + uploadRankQueryFragment + `) s
 ON u.id = s.id
 JOIN repo ON repo.id = u.repository_id
@@ -540,57 +578,28 @@ WHERE %s ORDER BY %s LIMIT %d OFFSET %d
 `
 
 const deletedUploadsFromAuditLogsCTEQuery = `
-SELECT DISTINCT ON(upload_id) *
-FROM lsif_uploads_audit_logs
-WHERE record_deleted_at IS NOT NULL
-ORDER BY upload_id, sequence DESC
+SELECT
+	DISTINCT ON(s.upload_id) s.upload_id AS id, au.commit, au.root,
+	au.uploaded_at, 'deleted' AS state,
+	snapshot->'failure_message' AS failure_message,
+	(snapshot->'started_at')::timestamptz AS started_at,
+	(snapshot->'finished_at')::timestamptz AS finished_at,
+	(snapshot->'process_after')::timestamptz AS process_after,
+	(snapshot->'num_resets')::integer AS num_resets,
+	(snapshot->'num_failures')::integer AS num_failures,
+	au.repository_id,
+	au.indexer, au.indexer_version,
+	COALESCE((snapshot->'num_parts')::integer, -1) AS num_parts,
+	NULL::integer[] as uploaded_parts,
+	au.upload_size, au.associated_index_id
+FROM (
+	SELECT upload_id, snapshot_transition_columns(transition_columns ORDER BY sequence ASC) AS snapshot
+	FROM lsif_uploads_audit_logs
+	WHERE record_deleted_at IS NOT NULL
+	GROUP BY upload_id
+) AS s
+JOIN lsif_uploads_audit_logs au ON au.upload_id = s.upload_id
 `
-
-/*
-SELECT u.id,
-       u.commit,
-       u.root,
-       EXISTS(SELECT 1
-              FROM lsif_uploads_visible_at_tip uvt
-              WHERE uvt.repository_id = u.repository_id AND uvt.upload_id = u.id) AS visible_at_tip,
-       COALESCE(u.uploaded_at, ua.uploaded_at) AS uploaded_at,
-       u.state,
-       u.failure_message,
-       u.started_at,
-       u.finished_at,
-       u.process_after,
-       u.num_resets,
-       u.num_failures,
-       u.repository_id,
-       repo.name,
-       u.indexer,
-       u.indexer_version,
-       u.num_parts,
-       u.uploaded_parts,
-       u.upload_size,
-       u.associated_index_id,
-       s.rank,
-       COUNT(*) OVER () AS count
-FROM lsif_uploads u
-LEFT JOIN (
-    SELECT r.id,
-           ROW_NUMBER() OVER (ORDER BY COALESCE(r.process_after, r.uploaded_at), r.id) as rank
-    FROM lsif_uploads_with_repository_name r
-    WHERE r.state = 'queued'
-) s
-ON u.id = s.id
-JOIN repo ON repo.id = u.repository_id
-FULL JOIN (
-    SELECT DISTINCT ON(upload_id) *
-    FROM lsif_uploads_audit_logs
-    WHERE record_deleted_at IS NOT NULL
-    ORDER BY upload_id, sequence DESC
-) AS ua ON ua.upload_id = u.id AND ua.repository_id = repo.id
-WHERE u.state != 'deleted'
-  AND repo.deleted_at IS NULL
-  OR u.id IS NULL
-ORDER BY COALESCE(u.uploaded_at, ua.uploaded_at) DESC
-*/
 
 var rankedDependencyCandidateCTEQuery = `
 SELECT

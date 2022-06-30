@@ -952,6 +952,8 @@ enum LSIFUploadState {
     point the upload will become unreachable.
     """
     DELETING
+
+    DELETED
 }
 
 """
