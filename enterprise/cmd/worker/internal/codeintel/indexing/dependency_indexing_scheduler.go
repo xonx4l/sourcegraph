@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	otlog "github.com/opentracing/opentracing-go/log"
 	"github.com/sourcegraph/log"
 
 	"github.com/sourcegraph/sourcegraph/internal/actor"
@@ -15,6 +16,8 @@ import (
 	"github.com/sourcegraph/sourcegraph/internal/codeintel/stores/dbstore"
 	"github.com/sourcegraph/sourcegraph/internal/database"
 	"github.com/sourcegraph/sourcegraph/internal/errcode"
+	"github.com/sourcegraph/sourcegraph/internal/honey"
+	"github.com/sourcegraph/sourcegraph/internal/observation"
 	"github.com/sourcegraph/sourcegraph/internal/workerutil"
 	"github.com/sourcegraph/sourcegraph/internal/workerutil/dbworker"
 	dbworkerstore "github.com/sourcegraph/sourcegraph/internal/workerutil/dbworker/store"
@@ -38,8 +41,13 @@ func NewDependencyIndexingScheduler(
 	enqueuer *autoindexing.Service,
 	pollInterval time.Duration,
 	numProcessorRoutines int,
-	workerMetrics workerutil.WorkerMetrics,
+	observationContext *observation.Context,
 ) *workerutil.Worker {
+	observationContext.HoneyDataset = &honey.Dataset{
+		Name: "codeintel-dependency-indexing",
+	}
+	ops := newOperations(observationContext)
+
 	rootContext := actor.WithActor(context.Background(), &actor.Actor{Internal: true})
 
 	handler := &dependencyIndexingSchedulerHandler{
@@ -49,13 +57,14 @@ func NewDependencyIndexingScheduler(
 		workerStore:   workerStore,
 		repoUpdater:   repoUpdaterClient,
 		gitserver:     gitserverClient,
+		op:            ops,
 	}
 
 	return dbworker.NewWorker(rootContext, workerStore, handler, workerutil.WorkerOptions{
 		Name:              "precise_code_intel_dependency_indexing_scheduler_worker",
 		NumHandlers:       numProcessorRoutines,
 		Interval:          pollInterval,
-		Metrics:           workerMetrics,
+		Metrics:           workerutil.NewMetrics(observationContext, "codeintel_dependency_index_processor"),
 		HeartbeatInterval: 1 * time.Second,
 	})
 }
@@ -67,6 +76,7 @@ type dependencyIndexingSchedulerHandler struct {
 	workerStore   dbworkerstore.Store
 	repoUpdater   RepoUpdaterClient
 	gitserver     GitserverClient
+	op            *dependencyReposOperations
 }
 
 var _ workerutil.Handler = &dependencyIndexingSchedulerHandler{}
@@ -75,12 +85,29 @@ var _ workerutil.Handler = &dependencyIndexingSchedulerHandler{}
 // recently completed processing. Each moniker is interpreted according to its
 // scheme to determine the dependent repository and commit. A set of indexing
 // jobs are enqueued for each repository and commit pair.
-func (h *dependencyIndexingSchedulerHandler) Handle(ctx context.Context, logger log.Logger, record workerutil.Record) error {
+func (h *dependencyIndexingSchedulerHandler) Handle(ctx context.Context, logger log.Logger, record workerutil.Record) (err error) {
 	if !autoIndexingEnabled() || disableIndexScheduler {
 		return nil
 	}
 
 	job := record.(dbstore.DependencyIndexingJob)
+
+	requeue := false
+	ctx, _, endObservation := h.op.HandleDependencyIndexing.With(ctx, &err, observation.Args{
+		LogFields: []otlog.Field{
+			otlog.Int("jobID", job.ID),
+			otlog.Int("uploadID", job.UploadID),
+			otlog.String("extsvc", job.ExternalServiceKind),
+			otlog.Int("syncDelta", int(time.Since(job.ExternalServiceSync))),
+			otlog.Int("failures", job.NumFailures),
+			otlog.Int("resets", job.NumResets),
+		},
+	})
+	defer func() {
+		endObservation(1, observation.Args{
+			LogFields: []otlog.Field{otlog.Bool("requeued", requeue)},
+		})
+	}()
 
 	if job.ExternalServiceKind != "" {
 		externalServices, err := h.extsvcStore.List(ctx, database.ExternalServicesListOptions{
@@ -97,7 +124,7 @@ func (h *dependencyIndexingSchedulerHandler) Handle(ctx context.Context, logger 
 			}
 		}
 
-		if len(outdatedServices) > 0 {
+		if requeue = len(outdatedServices) > 0; requeue {
 			if err := h.workerStore.Requeue(ctx, job.ID, time.Now().Add(requeueBackoff)); err != nil {
 				return errors.Wrap(err, "store.Requeue")
 			}

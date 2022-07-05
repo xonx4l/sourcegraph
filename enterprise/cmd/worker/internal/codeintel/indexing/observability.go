@@ -9,6 +9,8 @@ import (
 )
 
 type dependencyReposOperations struct {
+	HandleDependencySyncing       *observation.Operation
+	HandleDependencyIndexing      *observation.Operation
 	InsertCloneableDependencyRepo *observation.Operation
 }
 
@@ -25,16 +27,23 @@ func newOperations(observationContext *observation.Context) *dependencyReposOper
 			metrics.WithLabels("op", "scheme", "new"),
 		)
 
-		op := func(prefix, name string) *observation.Operation {
+		opWithMetrics := func(prefix, name string) *observation.Operation {
 			return observationContext.Operation(observation.Op{
 				Name:              fmt.Sprintf("codeintel.%s.%s", prefix, name),
 				MetricLabelValues: []string{name},
 				Metrics:           m,
 			})
 		}
+		opSansMetrics := func(prefix, name string) *observation.Operation {
+			return observationContext.Operation(observation.Op{
+				Name: fmt.Sprintf("codeintel.%s.%s", prefix, name),
+			})
+		}
 
 		dependencyReposOps = &dependencyReposOperations{
-			InsertCloneableDependencyRepo: op("dependencyrepos", "InsertCloneableDependencyRepo"),
+			HandleDependencySyncing:       opSansMetrics("dependencyrepos", "HandleDependencySyncing"),
+			HandleDependencyIndexing:      opSansMetrics("dependencyrepos", "HandleDependencyIndexing"),
+			InsertCloneableDependencyRepo: opWithMetrics("dependencyrepos", "InsertCloneableDependencyRepo"),
 		}
 	})
 	return dependencyReposOps

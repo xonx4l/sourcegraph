@@ -2,10 +2,12 @@ package indexing
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	otlog "github.com/opentracing/opentracing-go/log"
 	"github.com/sourcegraph/log"
 
 	"github.com/sourcegraph/sourcegraph/internal/actor"
@@ -14,6 +16,7 @@ import (
 	"github.com/sourcegraph/sourcegraph/internal/codeintel/stores/shared"
 	"github.com/sourcegraph/sourcegraph/internal/database"
 	"github.com/sourcegraph/sourcegraph/internal/extsvc"
+	"github.com/sourcegraph/sourcegraph/internal/honey"
 	"github.com/sourcegraph/sourcegraph/internal/observation"
 	"github.com/sourcegraph/sourcegraph/internal/workerutil"
 	"github.com/sourcegraph/sourcegraph/internal/workerutil/dbworker"
@@ -34,12 +37,14 @@ func NewDependencySyncScheduler(
 	dbStore DBStore,
 	workerStore dbworkerstore.Store,
 	externalServiceStore ExternalServiceStore,
-	metrics workerutil.WorkerMetrics,
 	observationContext *observation.Context,
 ) *workerutil.Worker {
 	// Init metrics here now after we've moved the autoindexing scheduler
 	// into the autoindexing service
-	newOperations(observationContext)
+	observationContext.HoneyDataset = &honey.Dataset{
+		Name: "codeintel-dependency-syncing",
+	}
+	ops := newOperations(observationContext)
 
 	rootContext := actor.WithActor(context.Background(), &actor.Actor{Internal: true})
 
@@ -47,6 +52,7 @@ func NewDependencySyncScheduler(
 		dbStore:     dbStore,
 		workerStore: workerStore,
 		extsvcStore: externalServiceStore,
+		op:          ops,
 	}
 
 	return dbworker.NewWorker(rootContext, workerStore, handler, workerutil.WorkerOptions{
@@ -54,7 +60,7 @@ func NewDependencySyncScheduler(
 		NumHandlers:       1,
 		Interval:          time.Second * 5,
 		HeartbeatInterval: 1 * time.Second,
-		Metrics:           metrics,
+		Metrics:           workerutil.NewMetrics(observationContext, "codeintel_dependency_index_processor"),
 	})
 }
 
@@ -62,14 +68,25 @@ type dependencySyncSchedulerHandler struct {
 	dbStore     DBStore
 	workerStore dbworkerstore.Store
 	extsvcStore ExternalServiceStore
+	op          *dependencyReposOperations
 }
 
-func (h *dependencySyncSchedulerHandler) Handle(ctx context.Context, logger log.Logger, record workerutil.Record) error {
+func (h *dependencySyncSchedulerHandler) Handle(ctx context.Context, logger log.Logger, record workerutil.Record) (err error) {
 	if !autoIndexingEnabled() {
 		return nil
 	}
 
 	job := record.(dbstore.DependencySyncingJob)
+
+	ctx, traceLog, endObservation := h.op.HandleDependencySyncing.With(ctx, &err, observation.Args{
+		LogFields: []otlog.Field{
+			otlog.Int("jobID", job.ID),
+			otlog.Int("uploadID", job.UploadID),
+			otlog.Int("failures", job.NumFailures),
+			otlog.Int("resets", job.NumResets),
+		},
+	})
+	defer endObservation(1, observation.Args{})
 
 	scanner, err := h.dbStore.ReferencesForUpload(ctx, job.UploadID)
 	if err != nil {
@@ -83,9 +100,10 @@ func (h *dependencySyncSchedulerHandler) Handle(ctx context.Context, logger log.
 
 	var (
 		kinds                      = map[string]struct{}{}
+		errs                       []error
 		oldDependencyReposInserted int
 		newDependencyReposInserted int
-		errs                       []error
+		skippedPackageReferences   int
 	)
 
 	for {
@@ -104,6 +122,7 @@ func (h *dependencySyncSchedulerHandler) Handle(ctx context.Context, logger log.
 		// an associated dependency indexing job
 		kinds[extsvcKind] = struct{}{}
 		if !ok {
+			skippedPackageReferences++
 			continue
 		}
 
@@ -119,7 +138,15 @@ func (h *dependencySyncSchedulerHandler) Handle(ctx context.Context, logger log.
 
 	var nextSync time.Time
 	kindsArray := kindsToArray(kinds)
-	// If len == 0, it will return all external services, which we definitely don't want.
+
+	traceLog.Tag(
+		otlog.Int("skippedReferences", skippedPackageReferences),
+		otlog.Int("newDependencies", newDependencyReposInserted),
+		otlog.Int("oldDependencies", oldDependencyReposInserted),
+		otlog.String("extsvKinds", fmt.Sprint(kindsArray)),
+	)
+
+	// If len == 0, extsvcStore.List will return all external services, which we definitely don't want.
 	if len(kindsArray) > 0 {
 		nextSync = time.Now()
 		externalServices, err := h.extsvcStore.List(ctx, database.ExternalServicesListOptions{
@@ -197,6 +224,7 @@ func newPackage(pkg shared.Package) precise.Package {
 
 func (h *dependencySyncSchedulerHandler) insertDependencyRepo(ctx context.Context, pkg precise.Package) (new bool, err error) {
 	ctx, _, endObservation := dependencyReposOps.InsertCloneableDependencyRepo.With(ctx, &err, observation.Args{
+		LogFields:         []otlog.Field{otlog.String("scheme", pkg.Scheme), otlog.String("name", pkg.Name), otlog.String("version", pkg.Version)},
 		MetricLabelValues: []string{pkg.Scheme},
 	})
 	defer func() {
