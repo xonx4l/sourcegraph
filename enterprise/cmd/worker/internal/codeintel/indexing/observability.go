@@ -8,19 +8,24 @@ import (
 	"github.com/sourcegraph/sourcegraph/internal/observation"
 )
 
-type dependencyReposOperations struct {
+type dependencySyncingOperations struct {
 	HandleDependencySyncing       *observation.Operation
-	HandleDependencyIndexing      *observation.Operation
 	InsertCloneableDependencyRepo *observation.Operation
 }
 
+type dependencyIndexingOperations struct {
+	HandleDependencyIndexing *observation.Operation
+}
+
 var (
-	once               sync.Once
-	dependencyReposOps *dependencyReposOperations
+	syncingOnce           sync.Once
+	indexingOnce          sync.Once
+	dependencySyncingOps  *dependencySyncingOperations
+	dependencyIndexingOps *dependencyIndexingOperations
 )
 
-func newOperations(observationContext *observation.Context) *dependencyReposOperations {
-	once.Do(func() {
+func newSyncingOperations(observationContext *observation.Context) *dependencySyncingOperations {
+	syncingOnce.Do(func() {
 		m := metrics.NewREDMetrics(
 			observationContext.Registerer,
 			"codeintel_dependency_repos",
@@ -40,11 +45,25 @@ func newOperations(observationContext *observation.Context) *dependencyReposOper
 			})
 		}
 
-		dependencyReposOps = &dependencyReposOperations{
+		dependencySyncingOps = &dependencySyncingOperations{
 			HandleDependencySyncing:       opSansMetrics("dependencyrepos", "HandleDependencySyncing"),
-			HandleDependencyIndexing:      opSansMetrics("dependencyrepos", "HandleDependencyIndexing"),
 			InsertCloneableDependencyRepo: opWithMetrics("dependencyrepos", "InsertCloneableDependencyRepo"),
 		}
 	})
-	return dependencyReposOps
+	return dependencySyncingOps
+}
+
+func newIndexingOperations(observationContext *observation.Context) *dependencyIndexingOperations {
+	indexingOnce.Do(func() {
+		opSansMetrics := func(prefix, name string) *observation.Operation {
+			return observationContext.Operation(observation.Op{
+				Name: fmt.Sprintf("codeintel.%s.%s", prefix, name),
+			})
+		}
+
+		dependencyIndexingOps = &dependencyIndexingOperations{
+			HandleDependencyIndexing: opSansMetrics("dependencyrepos", "HandleDependencyIndexing"),
+		}
+	})
+	return dependencyIndexingOps
 }

@@ -17,7 +17,7 @@ import (
 )
 
 func TestDependencySyncSchedulerJVM(t *testing.T) {
-	newOperations(&observation.TestContext)
+	newSyncingOperations(&observation.TestContext)
 	mockWorkerStore := NewMockWorkerStore()
 	mockDBStore := NewMockDBStore()
 	mockExtsvcStore := NewMockExternalServiceStore()
@@ -65,7 +65,7 @@ func TestDependencySyncSchedulerJVM(t *testing.T) {
 }
 
 func TestDependencySyncSchedulerGomod(t *testing.T) {
-	newOperations(&observation.TestContext)
+	newSyncingOperations(&observation.TestContext)
 	mockWorkerStore := NewMockWorkerStore()
 	mockDBStore := NewMockDBStore()
 	mockExtsvcStore := NewMockExternalServiceStore()

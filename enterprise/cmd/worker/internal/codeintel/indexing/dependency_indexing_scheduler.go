@@ -46,7 +46,7 @@ func NewDependencyIndexingScheduler(
 	observationContext.HoneyDataset = &honey.Dataset{
 		Name: "codeintel-dependency-indexing",
 	}
-	ops := newOperations(observationContext)
+	ops := newIndexingOperations(observationContext)
 
 	rootContext := actor.WithActor(context.Background(), &actor.Actor{Internal: true})
 
@@ -76,7 +76,7 @@ type dependencyIndexingSchedulerHandler struct {
 	workerStore   dbworkerstore.Store
 	repoUpdater   RepoUpdaterClient
 	gitserver     GitserverClient
-	op            *dependencyReposOperations
+	op            *dependencyIndexingOperations
 }
 
 var _ workerutil.Handler = &dependencyIndexingSchedulerHandler{}

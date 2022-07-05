@@ -44,7 +44,7 @@ func NewDependencySyncScheduler(
 	observationContext.HoneyDataset = &honey.Dataset{
 		Name: "codeintel-dependency-syncing",
 	}
-	ops := newOperations(observationContext)
+	ops := newSyncingOperations(observationContext)
 
 	rootContext := actor.WithActor(context.Background(), &actor.Actor{Internal: true})
 
@@ -60,7 +60,7 @@ func NewDependencySyncScheduler(
 		NumHandlers:       1,
 		Interval:          time.Second * 5,
 		HeartbeatInterval: 1 * time.Second,
-		Metrics:           workerutil.NewMetrics(observationContext, "codeintel_dependency_index_processor"),
+		Metrics:           workerutil.NewMetrics(observationContext, "codeintel_dependency_sync_processor"),
 	})
 }
 
@@ -68,7 +68,7 @@ type dependencySyncSchedulerHandler struct {
 	dbStore     DBStore
 	workerStore dbworkerstore.Store
 	extsvcStore ExternalServiceStore
-	op          *dependencyReposOperations
+	op          *dependencySyncingOperations
 }
 
 func (h *dependencySyncSchedulerHandler) Handle(ctx context.Context, logger log.Logger, record workerutil.Record) (err error) {
@@ -223,7 +223,7 @@ func newPackage(pkg shared.Package) precise.Package {
 }
 
 func (h *dependencySyncSchedulerHandler) insertDependencyRepo(ctx context.Context, pkg precise.Package) (new bool, err error) {
-	ctx, _, endObservation := dependencyReposOps.InsertCloneableDependencyRepo.With(ctx, &err, observation.Args{
+	ctx, _, endObservation := dependencySyncingOps.InsertCloneableDependencyRepo.With(ctx, &err, observation.Args{
 		LogFields:         []otlog.Field{otlog.String("scheme", pkg.Scheme), otlog.String("name", pkg.Name), otlog.String("version", pkg.Version)},
 		MetricLabelValues: []string{pkg.Scheme},
 	})
