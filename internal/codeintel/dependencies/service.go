@@ -50,6 +50,10 @@ type ListDependencyReposOpts struct {
 	// every (package, version) tuple. Results will be sorted by name to make
 	// pagination possible. Takes precedence over NewestFirst.
 	ExcludeVersions bool
+
+	// ExcludeFailed doesn't return rows for packages/package versions that have
+	// failed to sync in the last sync attempt. Ignored when ExcludeVersions is true.
+	ExcludeFailed bool
 }
 
 func (s *Service) ListDependencyRepos(ctx context.Context, opts ListDependencyReposOpts) (_ []Repo, err error) {

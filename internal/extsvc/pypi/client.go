@@ -34,8 +34,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sourcegraph/sourcegraph/internal/conf/reposource"
 	"golang.org/x/net/html"
+
+	"github.com/sourcegraph/sourcegraph/internal/conf/reposource"
 
 	"github.com/sourcegraph/sourcegraph/internal/errcode"
 	"github.com/sourcegraph/sourcegraph/internal/httpcli"
@@ -146,14 +147,6 @@ func FindVersion(version string, files []File) (File, error) {
 		code:    404,
 		message: fmt.Sprintf("could not find a wheel or source distribution for version %s", version),
 	}
-}
-
-type NotFoundError struct {
-	error
-}
-
-func (e NotFoundError) NotFound() bool {
-	return true
 }
 
 // File represents one anchor element in the response from /<project>/.

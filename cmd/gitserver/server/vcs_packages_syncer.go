@@ -76,7 +76,7 @@ func (s *vcsPackagesSyncer) RemoteShowCommand(ctx context.Context, remoteURL *vc
 }
 
 func (s *vcsPackagesSyncer) CloneCommand(ctx context.Context, remoteURL *vcs.URL, bareGitDirectory string) (*exec.Cmd, error) {
-	err := os.MkdirAll(bareGitDirectory, 0755)
+	err := os.MkdirAll(bareGitDirectory, 0o755)
 	if err != nil {
 		return nil, err
 	}
@@ -145,8 +145,35 @@ func (s *vcsPackagesSyncer) fetchRevspec(ctx context.Context, name reposource.Pa
 		// Invalid version. Silently ignore error, see comment above why.
 		return nil
 	}
+
+	packages, err := s.svc.ListDependencyRepos(ctx, dependencies.ListDependencyReposOpts{
+		Scheme: dep.Scheme(),
+		Name:   dep.PackageSyntax(),
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, pkg := range packages {
+		if pkg.Version == requestedVersion && pkg.LastSyncError != "" {
+			// Invalid version. Silently ignore error, see comment above why.
+			return nil
+		}
+	}
+
 	err = s.gitPushDependencyTag(ctx, string(dir), dep)
 	if err != nil {
+		_, err = s.svc.UpsertDependencyRepos(ctx, []dependencies.Repo{
+			{
+				Scheme:        dep.Scheme(),
+				Name:          dep.PackageSyntax(),
+				Version:       dep.PackageVersion(),
+				LastSyncError: err.Error(),
+			},
+		})
+		if err != nil {
+			s.logger.Error("failed to write sync error for package", log.Error(err), log.String("package", string(dep.VersionedPackageSyntax())))
+		}
 		// Package could not be downloaded. Silently ignore error, see comment above why.
 		return nil
 	}
@@ -206,17 +233,29 @@ func (s *vcsPackagesSyncer) fetchVersions(ctx context.Context, name reposource.P
 		tags[line] = struct{}{}
 	}
 
-	var cloned []reposource.VersionedPackage
+	var (
+		cloned    []reposource.VersionedPackage
+		notCloned []dependencies.Repo
+	)
 	for _, dependency := range cloneable {
 		if _, tagExists := tags[dependency.GitTagFromVersion()]; tagExists {
 			cloned = append(cloned, dependency)
 			continue
 		}
 		if err := s.gitPushDependencyTag(ctx, string(dir), dependency); err != nil {
-			errs = errors.Append(errs, errors.Wrapf(err, "error pushing dependency %q", dependency))
+			notCloned = append(notCloned, dependencies.Repo{
+				Scheme:        dependency.Scheme(),
+				Name:          dependency.PackageSyntax(),
+				Version:       dependency.PackageVersion(),
+				LastSyncError: err.Error(),
+			})
 		} else {
 			cloned = append(cloned, dependency)
 		}
+	}
+
+	if _, err := s.svc.UpsertDependencyRepos(ctx, notCloned); err != nil {
+		errs = errors.Append(errs, errors.Wrapf(err, "error setting last_sync_error on failed package versions"))
 	}
 
 	// Set the latest version as the default branch, if there was a successful download.
@@ -279,7 +318,7 @@ func (s *vcsPackagesSyncer) gitPushDependencyTag(ctx context.Context, bareGitDir
 		if errcode.IsNotFound(err) {
 			s.logger.With(
 				log.String("dependency", dep.VersionedPackageSyntax()),
-				log.String("error", err.Error()),
+				log.Error(err),
 			).Warn("Error during dependency download")
 		}
 		return err
@@ -337,11 +376,11 @@ func (s *vcsPackagesSyncer) versions(ctx context.Context, packageName reposource
 	}
 
 	depRepos, err := s.svc.ListDependencyRepos(ctx, dependencies.ListDependencyReposOpts{
-		Scheme:      s.scheme,
-		Name:        packageName,
-		NewestFirst: true,
+		Scheme:        s.scheme,
+		Name:          packageName,
+		NewestFirst:   true,
+		ExcludeFailed: true,
 	})
-
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list dependencies from db")
 	}

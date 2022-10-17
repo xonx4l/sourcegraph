@@ -6,10 +6,11 @@ import (
 )
 
 type Repo struct {
-	ID      int
-	Scheme  string
-	Name    reposource.PackageName
-	Version string
+	ID            int
+	Scheme        string
+	Name          reposource.PackageName
+	Version       string
+	LastSyncError string
 }
 
 type PackageDependency interface {

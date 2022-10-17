@@ -46,6 +46,7 @@ type ListDependencyReposOpts struct {
 	Limit           int
 	NewestFirst     bool
 	ExcludeVersions bool
+	ExcludeFailed   bool
 }
 
 // ListDependencyRepos returns dependency repositories to be synced by gitserver.
@@ -67,10 +68,10 @@ func (s *store) ListDependencyRepos(ctx context.Context, opts ListDependencyRepo
 		sortExpr = "name ASC"
 	}
 
-	selectCols := sqlf.Sprintf("id, scheme, name, version")
+	selectCols := sqlf.Sprintf("id, scheme, name, version, last_sync_error")
 	if opts.ExcludeVersions {
 		// id is likely not stable here, so no one should actually use it. Should we set it to 0?
-		selectCols = sqlf.Sprintf("DISTINCT ON(name) id, scheme, name, '' AS version")
+		selectCols = sqlf.Sprintf("DISTINCT ON(name) id, scheme, name, '' AS version, last_sync_error")
 	}
 
 	return scanDependencyRepos(s.db.Query(ctx, sqlf.Sprintf(
@@ -91,11 +92,15 @@ ORDER BY %s
 `
 
 func makeListDependencyReposConds(opts ListDependencyReposOpts) []*sqlf.Query {
-	conds := make([]*sqlf.Query, 0, 3)
+	conds := make([]*sqlf.Query, 0, 4)
 	conds = append(conds, sqlf.Sprintf("scheme = %s", opts.Scheme))
 
 	if opts.Name != "" {
 		conds = append(conds, sqlf.Sprintf("name = %s", opts.Name))
+	}
+
+	if opts.ExcludeFailed && !opts.ExcludeVersions {
+		conds = append(conds, sqlf.Sprintf("last_sync_error = ''"))
 	}
 
 	switch after := opts.After.(type) {
@@ -144,7 +149,7 @@ func (s *store) UpsertDependencyRepos(ctx context.Context, deps []shared.Repo) (
 
 	callback := func(inserter *batch.Inserter) error {
 		for _, dep := range deps {
-			if err := inserter.Insert(ctx, dep.Scheme, dep.Name, dep.Version); err != nil {
+			if err := inserter.Insert(ctx, dep.Scheme, dep.Name, dep.Version, dep.LastSyncError); err != nil {
 				return err
 			}
 		}
@@ -167,9 +172,9 @@ func (s *store) UpsertDependencyRepos(ctx context.Context, deps []shared.Repo) (
 		s.db.Handle(),
 		"lsif_dependency_repos",
 		batch.MaxNumPostgresParameters,
-		[]string{"scheme", "name", "version"},
-		"ON CONFLICT DO NOTHING",
-		[]string{"id", "scheme", "name", "version"},
+		[]string{"scheme", "name", "version", "last_sync_error"},
+		"ON CONFLICT (scheme, name, version) DO UPDATE SET last_sync_error = EXCLUDED.last_sync_error",
+		[]string{"id", "scheme", "name", "version", "last_sync_error"},
 		returningScanner,
 		callback,
 	)
