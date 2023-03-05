@@ -13,6 +13,13 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
+        "workflows": {
+          "type": "boolean",
+          "default": false,
+          "!go": {
+            "pointer": true
+          }
+        },
         "codeInsights": {
           "description": "Enables code insights on directory pages.",
           "type": "boolean",

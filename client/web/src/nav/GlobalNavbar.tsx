@@ -43,6 +43,8 @@ import { UserNavItem } from './UserNavItem'
 import { NavGroup, NavItem, NavBar, NavLink, NavActions, NavAction } from '.'
 
 import styles from './GlobalNavbar.module.scss'
+import { useExpWorkflows } from '../enterprise/expworkflows/useExpWorkflows'
+import { ownIcon } from '../repo/blob/own/HistoryAndOwnBar.module.scss'
 
 export interface GlobalNavbarProps
     extends SettingsCascadeProps<Settings>,
@@ -174,6 +176,8 @@ export const GlobalNavbar: React.FunctionComponent<React.PropsWithChildren<Globa
     const [codyEnabled] = useFeatureFlag('cody')
     const isLightTheme = useIsLightTheme()
 
+    const expWorkflowsEnabled = useExpWorkflows()
+
     return (
         <>
             <NavBar
@@ -188,34 +192,42 @@ export const GlobalNavbar: React.FunctionComponent<React.PropsWithChildren<Globa
                 }
             >
                 <NavGroup>
-                    {searchNavBarItems.length > 0 ? (
-                        <NavDropdown
-                            toggleItem={{
-                                path: PageRoutes.Search,
-                                altPath: PageRoutes.RepoContainer,
-                                icon: MagnifyIcon,
-                                content: 'Code Search',
-                                variant: navLinkVariant,
-                            }}
-                            routeMatch={routeMatch}
-                            mobileHomeItem={{ content: 'Search home' }}
-                            items={searchNavBarItems}
-                        />
-                    ) : (
-                        <NavItem icon={MagnifyIcon}>
-                            <NavLink variant={navLinkVariant} to={PageRoutes.Search}>
-                                Code Search
-                            </NavLink>
-                        </NavItem>
-                    )}
-                    {showSearchNotebook && (
+                    {!expWorkflowsEnabled &&
+                        (searchNavBarItems.length > 0 ? (
+                            <NavDropdown
+                                toggleItem={{
+                                    path: PageRoutes.Search,
+                                    altPath: PageRoutes.RepoContainer,
+                                    icon: MagnifyIcon,
+                                    content: 'Code Search',
+                                    variant: navLinkVariant,
+                                }}
+                                routeMatch={routeMatch}
+                                mobileHomeItem={{ content: 'Search home' }}
+                                items={searchNavBarItems}
+                            />
+                        ) : (
+                            <NavItem icon={MagnifyIcon}>
+                                <NavLink variant={navLinkVariant} to={PageRoutes.Search}>
+                                    Code Search
+                                </NavLink>
+                            </NavItem>
+                        ))}
+                    {showSearchNotebook && !expWorkflowsEnabled && (
                         <NavItem icon={BookOutlineIcon}>
                             <NavLink variant={navLinkVariant} to={EnterprisePageRoutes.Notebooks}>
                                 Notebooks
                             </NavLink>
                         </NavItem>
                     )}
-                    {showCodeMonitoring && (
+                    {expWorkflowsEnabled && (
+                        <NavItem>
+                            <NavLink variant={navLinkVariant} to="/own">
+                                Ownership
+                            </NavLink>
+                        </NavItem>
+                    )}
+                    {showCodeMonitoring && !expWorkflowsEnabled && (
                         <NavItem icon={CodeMonitoringLogo}>
                             <NavLink variant={navLinkVariant} to="/code-monitoring">
                                 Monitoring
@@ -225,10 +237,10 @@ export const GlobalNavbar: React.FunctionComponent<React.PropsWithChildren<Globa
                     {/* This is the only circumstance where we show something
                          batch-changes-related even if the instance does not have batch
                          changes enabled, for marketing purposes on sourcegraph.com */}
-                    {(props.batchChangesEnabled || isSourcegraphDotCom) && (
+                    {(props.batchChangesEnabled || isSourcegraphDotCom) && !expWorkflowsEnabled && (
                         <BatchChangesNavItem variant={navLinkVariant} />
                     )}
-                    {codeInsights && (
+                    {codeInsights && !expWorkflowsEnabled && (
                         <NavItem icon={BarChartIcon}>
                             <NavLink variant={navLinkVariant} to="/insights">
                                 Insights
@@ -261,7 +273,7 @@ export const GlobalNavbar: React.FunctionComponent<React.PropsWithChildren<Globa
                             )}
                         </>
                     )}
-                    {isSourcegraphApp && (
+                    {isSourcegraphApp && !expWorkflowsEnabled && (
                         <ButtonLink
                             variant="secondary"
                             outline={true}
@@ -292,7 +304,7 @@ export const GlobalNavbar: React.FunctionComponent<React.PropsWithChildren<Globa
                         </NavAction>
                     )}
                     {fuzzyFinderNavbar && FuzzyFinderNavItem(props.setFuzzyFinderIsVisible)}
-                    {props.authenticatedUser?.siteAdmin && (
+                    {props.authenticatedUser?.siteAdmin && false /* TODO(sqs): hide */ && (
                         <NavAction>
                             <StatusMessagesNavItem />
                         </NavAction>
