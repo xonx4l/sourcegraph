@@ -45,7 +45,6 @@ export const UserAreaGQLFragment = gql`
         avatarURL
         viewerCanAdminister
         builtinAuth
-        tags @include(if: $siteAdmin)
     }
 `
 

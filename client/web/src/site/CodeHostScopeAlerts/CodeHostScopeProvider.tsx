@@ -20,7 +20,7 @@ const CodeHostScopeContext = createContext<CodeHostScopeContext | undefined>(und
 
 interface Props {
     children: React.ReactNode
-    authenticatedUser: { id: string; tags: string[] } | null
+    authenticatedUser: { id: string } | null
 }
 
 export const CodeHostScopeProvider: FunctionComponent<React.PropsWithChildren<Props>> = ({

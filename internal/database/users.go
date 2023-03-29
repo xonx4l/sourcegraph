@@ -71,7 +71,6 @@ type UserStore interface {
 	GetByVerifiedEmail(context.Context, string) (*types.User, error)
 	HardDelete(context.Context, int32) error
 	HardDeleteList(context.Context, []int32) error
-	HasTag(ctx context.Context, userID int32, tag string) (bool, error)
 	InvalidateSessionsByID(context.Context, int32) (err error)
 	InvalidateSessionsByIDs(context.Context, []int32) (err error)
 	IsPassword(ctx context.Context, id int32, password string) (bool, error)
@@ -81,8 +80,6 @@ type UserStore interface {
 	RenewPasswordResetCode(context.Context, int32) (string, error)
 	SetIsSiteAdmin(ctx context.Context, id int32, isSiteAdmin bool) error
 	SetPassword(ctx context.Context, id int32, resetCode, newPassword string) (bool, error)
-	SetTag(ctx context.Context, userID int32, tag string, present bool) error
-	Tags(context.Context, int32) (map[string]bool, error)
 	Transact(context.Context) (UserStore, error)
 	Update(context.Context, int32, UserUpdate) error
 	UpdatePassword(ctx context.Context, id int32, oldPassword, newPassword string) error
@@ -803,8 +800,6 @@ type UsersListOptions struct {
 	// UserIDs specifies a list of user IDs to include.
 	UserIDs []int32
 
-	Tag string // only include users with this tag
-
 	// InactiveSince filters out users that have had an eventlog entry with a
 	// `timestamp` greater-than-or-equal to the given timestamp.
 	InactiveSince time.Time
@@ -890,9 +885,6 @@ func (*userStore) listSQL(opt UsersListOptions) (conds []*sqlf.Query) {
 			conds = append(conds, sqlf.Sprintf("u.id IN (%s)", sqlf.Join(items, ",")))
 		}
 	}
-	if opt.Tag != "" {
-		conds = append(conds, sqlf.Sprintf("%s::text = ANY(u.tags)", opt.Tag))
-	}
 
 	if !opt.InactiveSince.IsZero() {
 		conds = append(conds, sqlf.Sprintf(listUsersInactiveCond, opt.InactiveSince))
@@ -946,7 +938,7 @@ func (u *userStore) getOneBySQL(ctx context.Context, q *sqlf.Query) (*types.User
 
 // getBySQL returns users matching the SQL query, if any exist.
 func (u *userStore) getBySQL(ctx context.Context, query *sqlf.Query) ([]*types.User, error) {
-	q := sqlf.Sprintf("SELECT u.id, u.username, u.display_name, u.avatar_url, u.created_at, u.updated_at, u.site_admin, u.passwd IS NOT NULL, u.tags, u.invalidated_sessions_at, u.tos_accepted, u.searchable FROM users u %s", query)
+	q := sqlf.Sprintf("SELECT u.id, u.username, u.display_name, u.avatar_url, u.created_at, u.updated_at, u.site_admin, u.passwd IS NOT NULL, u.invalidated_sessions_at, u.tos_accepted, u.searchable FROM users u %s", query)
 	rows, err := u.Query(ctx, q)
 	if err != nil {
 		return nil, err
@@ -957,7 +949,7 @@ func (u *userStore) getBySQL(ctx context.Context, query *sqlf.Query) ([]*types.U
 	for rows.Next() {
 		var u types.User
 		var displayName, avatarURL sql.NullString
-		err := rows.Scan(&u.ID, &u.Username, &displayName, &avatarURL, &u.CreatedAt, &u.UpdatedAt, &u.SiteAdmin, &u.BuiltinAuth, pq.Array(&u.Tags), &u.InvalidatedSessionsAt, &u.TosAccepted, &u.Searchable)
+		err := rows.Scan(&u.ID, &u.Username, &displayName, &avatarURL, &u.CreatedAt, &u.UpdatedAt, &u.SiteAdmin, &u.BuiltinAuth, &u.InvalidatedSessionsAt, &u.TosAccepted, &u.Searchable)
 		if err != nil {
 			return nil, err
 		}

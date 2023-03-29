@@ -122,7 +122,6 @@ const commonSearchGraphQLResults: Partial<WebGraphQlOperations & SharedGraphQlOp
             avatarURL: '',
             viewerCanAdminister: true,
             builtinAuth: true,
-            tags: [],
         },
     }),
 }

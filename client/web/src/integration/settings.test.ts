@@ -65,7 +65,6 @@ describe('Settings', () => {
                         avatarURL: null,
                         viewerCanAdminister: true,
                         builtinAuth: true,
-                        tags: [],
                     },
                 }),
                 UserSettingsAreaUserProfile: () => ({
@@ -85,7 +84,6 @@ describe('Settings', () => {
                         emails: [{ email: 'test@sourcegraph.test', verified: true }],
                         organizations: { nodes: [] },
                         permissionsInfo: null,
-                        tags: [],
                     },
                 }),
             })

@@ -18,7 +18,6 @@ import (
 type usersArgs struct {
 	graphqlutil.ConnectionArgs
 	Query         *string
-	Tag           *string
 	ActivePeriod  *string
 	InactiveSince *gqlutil.DateTime
 }
@@ -27,9 +26,6 @@ func (r *schemaResolver) Users(args *usersArgs) *userConnectionResolver {
 	var opt database.UsersListOptions
 	if args.Query != nil {
 		opt.Query = *args.Query
-	}
-	if args.Tag != nil {
-		opt.Tag = *args.Tag
 	}
 	if args.InactiveSince != nil {
 		opt.InactiveSince = args.InactiveSince.Time

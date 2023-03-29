@@ -25,7 +25,6 @@ import {
     randomizeUserPassword,
     setUserIsSiteAdmin,
     invalidateSessionsByID,
-    setUserTag,
 } from '../backend'
 
 const CREATE_ORG_TAG = 'CreateOrg'
@@ -108,10 +107,7 @@ class UserNode extends React.PureComponent<UserNodeProps, UserNodeState> {
     }
 
     public render(): JSX.Element | null {
-        const orgCreationLabel =
-            window.context.sourcegraphDotComMode && this.props.node.tags?.includes(CREATE_ORG_TAG)
-                ? 'Disable'
-                : 'Enable'
+        const orgCreationLabel = window.context.sourcegraphDotComMode ? 'Disable' : 'Enable'
 
         return (
             <li className="list-group-item py-2">
@@ -353,18 +349,6 @@ class UserNode extends React.PureComponent<UserNodeProps, UserNodeState> {
             resetPasswordURL: undefined,
             loading: true,
         })
-
-        setUserTag(this.props.node.id, CREATE_ORG_TAG, newValue)
-            .toPromise()
-            .then(() => {
-                this.setState({ loading: false })
-                if (this.props.onDidUpdate) {
-                    this.props.onDidUpdate()
-                }
-            })
-            .catch(error => {
-                this.setState({ loading: false, errorDescription: asError(error).message })
-            })
     }
 }
 

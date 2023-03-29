@@ -30,7 +30,6 @@ const USER: UserSettingsAreaUserFields = {
     createdAt: subDays(now, 732).toISOString(),
     emails: [{ email: 'test@example.com', verified: true }],
     organizations: { nodes: [] },
-    tags: [],
 }
 describe('User profile page', () => {
     let driver: Driver
@@ -139,7 +138,6 @@ describe('User Different Settings Page', () => {
                     avatarURL: null,
                     viewerCanAdminister: true,
                     builtinAuth: true,
-                    tags: [],
                 },
             }),
             UserSettingsAreaUserProfile: () => ({
@@ -159,7 +157,6 @@ describe('User Different Settings Page', () => {
                     emails: [{ email: 'test@sourcegraph.test', verified: true }],
                     organizations: { nodes: [] },
                     permissionsInfo: null,
-                    tags: [],
                 },
             }),
         })

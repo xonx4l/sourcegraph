@@ -343,14 +343,6 @@ mutation {
 		resetPasswordURL
 	}
 }`,
-			}, {
-				name: "setTag",
-				query: `
-mutation {
-	setTag(node: "VXNlcjox", tag: "tag", present: true) {
-		alwaysNil
-	}
-}`,
 			},
 		}
 

@@ -10,7 +10,7 @@ import { useCodeHostScopeContext } from './CodeHostScopeProvider'
 import globalAlertStyles from '../../global/GlobalAlerts.module.scss'
 
 interface Props {
-    authenticatedUser: { id: string; tags: string[] } | null
+    authenticatedUser: { id: string } | null
 }
 
 export const GITHUB_SCOPE_ALERT_KEY = 'GitHubPrivateScopeAlert'
@@ -27,7 +27,7 @@ export const CodeHostScopeAlerts: FunctionComponent<React.PropsWithChildren<Prop
         return null
     }
 
-    if (!githubRepoScopeRequired(authenticatedUser.tags, scopes.github)) {
+    if (!githubRepoScopeRequired([], scopes.github)) {
         return null
     }
 
@@ -52,7 +52,7 @@ export const GitLabScopeAlert: FunctionComponent<React.PropsWithChildren<Props>>
         return null
     }
 
-    if (!gitlabAPIScopeRequired(authenticatedUser.tags, scopes.gitlab)) {
+    if (!gitlabAPIScopeRequired([], scopes.gitlab)) {
         return null
     }
 

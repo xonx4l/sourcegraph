@@ -25,7 +25,6 @@ export const authUser: AuthenticatedUser & NameSpaceUser = {
             { id: '1', settingsURL: '#', displayName: 'Beta Inc' },
         ] as AuthenticatedUser['organizations']['nodes'],
     },
-    tags: [],
     viewerCanAdminister: true,
     databaseID: 0,
     tosAccepted: true,

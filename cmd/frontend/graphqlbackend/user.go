@@ -309,14 +309,6 @@ func (r *UserResolver) Organizations(ctx context.Context) (*orgConnectionStaticR
 	return &c, nil
 }
 
-func (r *UserResolver) Tags(ctx context.Context) ([]string, error) {
-	// 🚨 SECURITY: Only the user and admins are allowed to access the user's tags.
-	if err := auth.CheckSiteAdminOrSameUser(ctx, r.db, r.user.ID); err != nil {
-		return nil, err
-	}
-	return r.user.Tags, nil
-}
-
 func (r *UserResolver) SurveyResponses(ctx context.Context) ([]*surveyResponseResolver, error) {
 	// 🚨 SECURITY: Only the user and admins are allowed to access the user's survey responses.
 	if err := auth.CheckSiteAdminOrSameUser(ctx, r.db, r.user.ID); err != nil {

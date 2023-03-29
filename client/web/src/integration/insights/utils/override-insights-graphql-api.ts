@@ -105,7 +105,6 @@ export function overrideInsightsGraphQLApi(props: OverrideGraphQLExtensionsProps
                 email: 'vova@sourcegraph.com',
                 displayName: null,
                 siteAdmin: true,
-                tags: [],
                 tosAccepted: true,
                 url: '/users/test',
                 settingsURL: '/users/test/settings',

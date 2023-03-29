@@ -4,8 +4,8 @@ import { UserAreaUserFields, Scalars } from '../../graphql-operations'
 type Scopes = string[] | null
 
 export interface UserProps {
-    user: Pick<UserAreaUserFields, 'id' | 'tags' | 'builtinAuth'>
-    authenticatedUser: Pick<AuthenticatedUser, 'id' | 'tags'>
+    user: Pick<UserAreaUserFields, 'id' | 'builtinAuth'>
+    authenticatedUser: Pick<AuthenticatedUser, 'id'>
 }
 
 export interface Owner {
@@ -16,7 +16,7 @@ export interface Owner {
 }
 
 export const externalServiceUserMode = (props: UserProps): 'disabled' | 'public' | 'all' | 'unknown' =>
-    externalServiceUserModeFromTags(props.user.tags || [])
+    externalServiceUserModeFromTags([])
 
 export const showPasswordsPage = (props: UserProps): boolean => {
     // user is signed-in with builtin Auth and External Service is not public
