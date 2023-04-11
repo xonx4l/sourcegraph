@@ -12,6 +12,14 @@ The Sourcegraph extension uses major.EVEN_NUMBER.patch (eg. 2.0.1) for release v
 
 ### Fixes
 
+## 2.2.16
+
+### Changes
+
+### Fixes
+
+- Fixes an issue with auth token validation [issues/50484](https://github.com/sourcegraph/sourcegraph/issues/50484)
+
 ## 2.2.15
 
 ### Changes
