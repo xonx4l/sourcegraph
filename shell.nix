@@ -11,12 +11,6 @@
 # Status: everything works on linux & darwin.
 { pkgs }:
 let
-  # pkgs.universal-ctags installs the binary as "ctags", not "universal-ctags"
-  # like zoekt expects.
-  universal-ctags = pkgs.writeShellScriptBin "universal-ctags" ''
-    exec ${pkgs.universal-ctags}/bin/ctags "$@"
-  '';
-
   # On darwin, we let bazelisk manage the bazel version since we actually need to run two
   # different versions thanks to aspect. Additionally bazelisk allows us to do
   # things like "bazel configure". So we just install a script called bazel
@@ -69,21 +63,21 @@ in
 pkgs.mkShell {
   name = "sourcegraph-dev";
 
-  # The packages in the `buildInputs` list will be added to the PATH in our shell
+  # The packages in the `nativeBuildInputs` list will be added to the PATH in our shell
   nativeBuildInputs = with pkgs; [
     # nix language server
     nil
 
-    # Our core DB.
+    # Our core DB
     postgresql_13
 
     # Cache and some store data
     redis
 
-    # Used by symbols and zoekt-git-index to extract symbols from sourcecode.
+    # Used by symbols and zoekt-git-index to extract symbols from sourcecode
     universal-ctags
 
-    # Build our backend.
+    # Build our backend. Sometimes newer :^)
     go_1_20
 
     # Lots of our tooling and go tests rely on git et al.
@@ -96,15 +90,9 @@ pkgs.mkShell {
     shfmt
     shellcheck
 
-    # Web tools. Need node 16.7 so we use unstable. Yarn should also be built against it.
+    # Web tools
     nodejs-16_x
-    (nodejs-16_x.pkgs.pnpm.override {
-      version = "8.1.0";
-      src = fetchurl {
-        url = "https://registry.npmjs.org/pnpm/-/pnpm-8.1.0.tgz";
-        sha512 = "sha512-e2H73wTRxmc5fWF/6QJqbuwU6O3NRVZC1G1WFXG8EqfN/+ZBu8XVHJZwPH6Xh0DxbEoZgw8/wy2utgCDwPu4Sg==";
-      };
-    })
+    nodejs-16_x.pkgs.pnpm
     nodePackages.typescript
 
     # Rust utils for syntax-highlighter service, currently not pinned to the same versions.
@@ -132,7 +120,7 @@ pkgs.mkShell {
 
   # By explicitly setting this environment variable we avoid starting up
   # universal-ctags via docker.
-  CTAGS_COMMAND = "${universal-ctags}/bin/universal-ctags";
+  CTAGS_COMMAND = "${pkgs.universal-ctags}/bin/universal-ctags";
 
   RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
 

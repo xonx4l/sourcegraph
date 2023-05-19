@@ -1,13 +1,15 @@
-{ nixpkgs, lib, utils }:
-lib.genAttrs utils.lib.defaultSystems (system:
+{ pkgs
+, pkgsStatic
+, pkgsMusl
+, lib
+, hostPlatform
+}:
 let
-  inherit (import ./util.nix { inherit (nixpkgs) lib; }) makeStatic unNixifyDylibs;
-  pkgs = nixpkgs.legacyPackages.${system};
-  isMacOS = nixpkgs.legacyPackages.${system}.hostPlatform.isMacOS;
+  inherit (import ./util.nix { inherit lib; }) makeStatic unNixifyDylibs;
   combyBuilder = ocamlPkgs: systemDepsPkgs:
     (ocamlPkgs.comby.override {
       sqlite = systemDepsPkgs.sqlite;
-      zlib = if isMacOS then systemDepsPkgs.zlib.static else systemDepsPkgs.zlib;
+      zlib = systemDepsPkgs.zlib.static or systemDepsPkgs.zlib;
       libev = (makeStatic (systemDepsPkgs.libev)).override { static = false; };
       gmp = makeStatic systemDepsPkgs.gmp;
       ocamlPackages = ocamlPkgs.ocamlPackages.overrideScope' (self: super: {
@@ -20,15 +22,13 @@ let
       });
     });
 in
-if isMacOS then {
-  comby = unNixifyDylibs pkgs (combyBuilder pkgs pkgs.pkgsStatic);
-} else {
-  comby = (combyBuilder pkgs.pkgsMusl pkgs.pkgsStatic).overrideAttrs (_: {
+if hostPlatform.isMacOS then
+  unNixifyDylibs pkgs (combyBuilder pkgs pkgsStatic)
+else
+  (combyBuilder pkgsMusl pkgsStatic).overrideAttrs (_: {
     postPatch = ''
       cat >> src/dune <<EOF
       (env (release (flags  :standard -ccopt -static)))
       EOF
     '';
-  });
-}
-)
+  })

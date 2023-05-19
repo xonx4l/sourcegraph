@@ -3,29 +3,38 @@
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
-    utils.url = "github:numtide/flake-utils";
+    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, utils }:
-    with nixpkgs.lib; with utils.lib; {
-      devShells = genAttrs defaultSystems (system:
-        let
-          pkgs = import nixpkgs { inherit system; overlays = [ self.overlays.ctags ]; };
-        in
-        {
-          default = pkgs.callPackage ./shell.nix { };
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+        callPackageWith' = (import ./dev/nix/util.nix { inherit (pkgs) lib; }).callPackageWith;
+        overlays = callPackageWith' pkgs ./dev/nix/overlay.nix { };
+        # pkgs' = pkgs.lib.fold (a: b: b.extend a) pkgs (builtins.attrValues overlays);
+        pkgs' = import nixpkgs { inherit system; overlays = builtins.attrValues overlays; };
+          # pkgs' = pkgs.extend (self: super: overlays { inherit self super; });
+          in
+          {
+          legacyPackages = pkgs';
+        devShells.default = pkgs'.callPackage ./shell.nix { };
+        packages = {
+          inherit (pkgs') universal-ctags comby nodejs;
+        } // pkgs.lib.optionalAttrs (pkgs.hostPlatform.system != "aarch64-linux") {
+          inherit (pkgs') p4-fusion;
+        };
+        #     bazel-fhs = (pkgs.buildFHSEnv {
+        #       name = "bazel";
+        #       runScript = "bash";
+        #       targetPkgs = pkgs: (with pkgs; [
+        #         bazel_6
+        #         zlib.dev
+        #       ]);
+        #     }).env;
+        #   }
+        # );
+
+        formatter = pkgs.nixpkgs-fmt;
+        });
         }
-      );
-
-      formatter = genAttrs defaultSystems (system: nixpkgs.legacyPackages.${system}.nixpkgs-fmt);
-
-      # Pin a specific version of universal-ctags to the same version as in cmd/symbols/ctags-install-alpine.sh.
-      overlays.ctags = (import ./dev/nix/ctags.nix { inherit nixpkgs utils; inherit (nixpkgs) lib; }).overlay;
-
-      packages = fold recursiveUpdate { } [
-        ((import ./dev/nix/ctags.nix { inherit nixpkgs utils; inherit (nixpkgs) lib; }).packages)
-        (import ./dev/nix/p4-fusion.nix { inherit nixpkgs utils; inherit (nixpkgs) lib; })
-        (import ./dev/nix/comby.nix { inherit nixpkgs utils; inherit (nixpkgs) lib; })
-      ];
-    };
-}
