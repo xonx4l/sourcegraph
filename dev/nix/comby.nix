@@ -3,11 +3,17 @@
 , pkgsMusl
 , lib
 , hostPlatform
+  # , comby
+, zlib
+, libev
+, gmp
+, ocamlPackages
+, sqlite
 }:
 let
   inherit (import ./util.nix { inherit lib; }) makeStatic unNixifyDylibs;
   combyBuilder = ocamlPkgs: systemDepsPkgs:
-    (ocamlPkgs.comby'.override {
+    (ocamlPkgs.comby.override {
       sqlite = systemDepsPkgs.sqlite;
       zlib = systemDepsPkgs.zlib.static or systemDepsPkgs.zlib;
       libev = (makeStatic (systemDepsPkgs.libev)).override { static = false; };

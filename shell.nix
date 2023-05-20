@@ -108,7 +108,7 @@ pkgs.mkShell {
     bazel-watcher
     bazel-buildtools
 
-    comby
+    # comby
   ];
 
   # Startup postgres, redis & set nixos specific stuff

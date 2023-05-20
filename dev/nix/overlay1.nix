@@ -1,11 +1,16 @@
 self: super: {
-  p4-fusion = super.callPackage ./p4-fusion.nix { };
+  p4-fusion = self.callPackage ./p4-fusion.nix { };
 
-  universal-ctags' = super.universal-ctags;
-  universal-ctags = super.callPackage ./ctags.nix { };
+  universal-ctags = self.pkgsStatic.callPackage ./ctags.nix {
+    universal-ctags = super.pkgsStatic.universal-ctags;
+    # static python is a hassle, and its only used for docs here so we dont care about
+    # it being static or not
+    python3 = super.python3;
+  };
 
-  comby' = super.comby;
-  comby = super.callPackage ./comby.nix { };
+  comby = self.callPackage ./comby.nix {
+    # comby = if self.stdenv.hostPlatform.isMacOS then super.comby else super.pkgsMusl.comby;
+  };
 
-  nodejs = super.callPackage ./nodejs.nix { };
+  nodejs = self.callPackage ./nodejs.nix { };
 }

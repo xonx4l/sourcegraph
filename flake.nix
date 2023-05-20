@@ -13,7 +13,7 @@
         pkgs' = pkgs.extend (import ./dev/nix/overlay1.nix);
       in
       {
-        legacyPackages = pkgs';
+        legacyPackages = builtins.removeAttrs pkgs' [ "ctags" ];
         devShells.default = pkgs'.callPackage ./shell.nix { };
         packages = {
           inherit (pkgs') universal-ctags comby nodejs;
