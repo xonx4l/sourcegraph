@@ -10,7 +10,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        pkgs' = pkgs.extend (import ./dev/nix/overlay1.nix);
+        pkgs' = pkgs.extend (pkgs.callPackage ./dev/nix/overlay1.nix { });
       in
       {
         legacyPackages = builtins.removeAttrs pkgs' [ "ctags" ];
