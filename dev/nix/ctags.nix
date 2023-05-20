@@ -27,7 +27,7 @@ in
       checkFlags = [ ];
       # don't include libintl/gettext
       dontAddExtraLibs = true;
-      postFixup = builtins.trace "uhoh" (oldAttrs.postFixup or "") + ''
+      postFixup = builtins.trace (oldAttrs.postFixup or "nada") (oldAttrs.postFixup or "") + ''
         # unideal -f here, theres a weird double-eval going on here
         ln -sf $out/bin/ctags $out/bin/universal-ctags
       '';
