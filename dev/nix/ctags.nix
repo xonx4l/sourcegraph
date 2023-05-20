@@ -9,8 +9,8 @@ let
   inherit (import ./util.nix { inherit lib; }) makeStatic unNixifyDylibs;
   isMacOS = hostPlatform.isMacOS;
   pkgs' = if isMacOS then pkgs else pkgsStatic;
-  pcre2 = (makeStatic pkgs'.pcre2);
-  libyaml = (makeStatic pkgs'.libyaml);
+  pcre2 = makeStatic pkgs'.pcre2;
+  libyaml = makeStatic pkgs'.libyaml;
   jansson =
     if !isMacOS then
       pkgs'.jansson else
@@ -20,7 +20,7 @@ let
         });
 in
 unNixifyDylibs pkgs'
-  ((pkgs'.universal-ctags.override {
+  ((pkgs'.universal-ctags'.override {
     # static python is a hassle, and its only used for docs here so we dont care about
     # it being static or not
     inherit python3 pcre2 libyaml jansson;

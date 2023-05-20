@@ -10,14 +10,10 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        callPackageWith' = (import ./dev/nix/util.nix { inherit (pkgs) lib; }).callPackageWith;
-        overlays = callPackageWith' pkgs ./dev/nix/overlay.nix { };
-        # pkgs' = pkgs.lib.fold (a: b: b.extend a) pkgs (builtins.attrValues overlays);
-        pkgs' = import nixpkgs { inherit system; overlays = builtins.attrValues overlays; };
-          # pkgs' = pkgs.extend (self: super: overlays { inherit self super; });
-          in
-          {
-          legacyPackages = pkgs';
+        pkgs' = pkgs.extend (import ./dev/nix/overlay1.nix);
+      in
+      {
+        legacyPackages = pkgs';
         devShells.default = pkgs'.callPackage ./shell.nix { };
         packages = {
           inherit (pkgs') universal-ctags comby nodejs;
@@ -36,5 +32,5 @@
         # );
 
         formatter = pkgs.nixpkgs-fmt;
-        });
-        }
+      });
+}

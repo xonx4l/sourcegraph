@@ -25,14 +25,4 @@
         done
       '';
     });
-
-  # same as callPackageWith but doesn't apply makeOverridable[1]. See [2] for nixpkgs exemplar.
-  # [1] https://sourcegraph.com/github.com/NixOS/nixpkgs@1a6a0923e57d9f41bcc3e2532a7f99943a3fbaeb/-/blob/lib/customisation.nix?L78
-  # [2] https://sourcegraph.com/github.com/NixOS/nixpkgs@1a6a0923e57d9f41bcc3e2532a7f99943a3fbaeb/-/blob/pkgs/development/beam-modules/lib.nix?L8
-  callPackageWith = autoArgs: fn: args:
-    let
-      f = if lib.isFunction fn then fn else import fn;
-      auto = builtins.intersectAttrs (lib.functionArgs f) autoArgs;
-    in
-    f (auto // args);
 }
