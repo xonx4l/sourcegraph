@@ -10,7 +10,9 @@
         configureFlags = (oldAttrs.configureFlags or [ ]) ++ [ "--disable-shared" "--enable-static" "--enable-shared=false" ];
       });
     in
-    overridden.override auto;
+    # pkgsStatic doesnt get any special
+    if pkg.stdenv.targetPlatform.isStatic || pkg.stdenv.targetPlatform.ismacOS then
+      overridden.override auto else pkg;
 
   # doesn't actually change anything in practice, just makes otool -L not display nix store paths for libiconv and libxml.
   # they exist in macos dydl cache anyways, so where they point to is irrelevant. worst case, this will let you catch earlier

@@ -20,10 +20,10 @@ in
 {
   comby =
     (if prev.hostPlatform.isMacOS then
-      unNixifyDylibs prev.comby prev.pkgs (combyBuilder prev.pkgs prev.pkgsStatic)
+      unNixifyDylibs prev.pkgs (combyBuilder prev.comby prev.pkgs prev.pkgsStatic)
     else
-      (combyBuilder prev.pkgsMusl.comby prev.pkgsMusl prev.pkgsStatic).overrideAttrs (_: {
-        postPatch = ''
+      (combyBuilder prev.comby prev prev.pkgsStatic).overrideAttrs (oldAttrs: {
+        postPatch = builtins.trace (oldAttrs.postPatch or "nada") ''
           cat >> src/dune <<EOF
           (env (release (flags  :standard -ccopt -static)))
           EOF

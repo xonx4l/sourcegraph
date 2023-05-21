@@ -9,7 +9,7 @@ let
 in
 {
   universal-ctags = unNixifyDylibs prev.pkgs
-    ((prev.pkgsStatic.universal-ctags.override {
+    ((prev.universal-ctags.override {
       inherit (prev) python3;
       pcre2 = pcre2-static;
       libyaml = libyaml-static;

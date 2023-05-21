@@ -16,9 +16,13 @@
         legacyPackages = builtins.removeAttrs pkgs' [ "ctags" ];
         devShells.default = pkgs'.callPackage ./shell.nix { };
         packages = {
-          inherit (pkgs') universal-ctags comby nodejs;
-        } // pkgs.lib.optionalAttrs (pkgs.hostPlatform.system != "aarch64-linux") {
-          inherit (pkgs') p4-fusion;
+          inherit (pkgs'.pkgsStatic) universal-ctags;
+          inherit (pkgs'.pkgsMusl) comby;
+          inherit (pkgs') nodejs;
+        } // pkgs.lib.optionalAttrs (pkgs.targetPlatform.isMacOS) {
+          inherit (pkgs') comby;
+        } // pkgs.lib.optionalAttrs (pkgs.targetPlatform.system != "aarch64-linux") {
+          inherit (pkgs'.pkgsStatic) p4-fusion;
         };
         #     bazel-fhs = (pkgs.buildFHSEnv {
         #       name = "bazel";
