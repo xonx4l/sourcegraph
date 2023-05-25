@@ -15,7 +15,11 @@ let
   #     xcodePlatform = "MacOSX";
   #     };
   #   });
-  rust-toolchain = pkgs.rust-bin.fromRustupToolchain {
+  apple_libs = with pkgs.pkgsx86_64Darwin.darwin; [
+    apple_sdk.frameworks.Carbon
+    apple_sdk.frameworks.WebKit
+  ];
+  rust-toolchain = pkgs.pkgsx86_64Darwin.rust-bin.fromRustupToolchain {
       channel="stable";
       profile="default";
       components = [
@@ -23,37 +27,23 @@ let
         "cargo"
         "rustc"
       ];
-      targets=[
-        "aarch64-apple-darwin"
-        "x86_64-apple-darwin"
-      ];
       };
-  apple_libs = with pkgs.darwin; [
-    libiconv
-    libobjc
-    apple_sdk.frameworks.CoreGraphics
-    apple_sdk.frameworks.Foundation
-    apple_sdk.frameworks.CoreFoundation
-    apple_sdk.frameworks.CoreVideo
-    apple_sdk.frameworks.AppKit
-    apple_sdk.frameworks.QuartzCore
-    apple_sdk.frameworks.Security
-    apple_sdk.frameworks.WebKit
-  ];
 
-in with pkgs; mkShell {
+in with pkgs.pkgsx86_64Darwin; mkShell {
   nativeBuildInputs = [
     pkg-config
     rust-toolchain
-    nodejs-16_x
-    (nodejs-16_x.pkgs.pnpm.override {
+
+    pkgs.nodejs-16_x
+    (pkgs.nodejs-16_x.pkgs.pnpm.override {
       version = "8.1.0";
       src = fetchurl {
         url = "https://registry.npmjs.org/pnpm/-/pnpm-8.1.0.tgz";
         sha512 = "sha512-e2H73wTRxmc5fWF/6QJqbuwU6O3NRVZC1G1WFXG8EqfN/+ZBu8XVHJZwPH6Xh0DxbEoZgw8/wy2utgCDwPu4Sg==";
       };
     })
-    nodePackages.typescript
+    pkgs.nodePackages.typescript
+
     go_1_20
   ];
 
