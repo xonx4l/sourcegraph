@@ -1,38 +1,37 @@
 let
   rust_overlay = (import (builtins.fetchTarball "https://github.com/oxalica/rust-overlay/archive/master.tar.gz"));
 
+  rust_custom = (self: super:
+  {
+    rust-stable = super.rust-bin.stable.latest.default.overrideAttrs (old: {
+      propagatedBuildInputs = [];
+      depsHostHostPropagated = [];
+      depsTargetTargetPropagated = [];
+    });
+  });
+
   pkgs = (import <nixpkgs> {
-    overlays = [ rust_overlay ];
+    overlays = [ rust_overlay rust_custom ];
     config = {
       allowUnfree = true;
     };
     system = "aarch64-darwin";
   });
-  # cross = (import <nixpkgs> {
-  #   crossSystem = {
-  #     config = "aarch64-apple-darwin";
-  #     platform = {};
-  #     xcodePlatform = "MacOSX";
-  #     };
-  #   });
+
   apple_libs = with pkgs.pkgsx86_64Darwin.darwin; [
+    apple_sdk.frameworks.AppKit
+    apple_sdk.frameworks.Foundation
+    apple_sdk.frameworks.CoreFoundation
     apple_sdk.frameworks.Carbon
     apple_sdk.frameworks.WebKit
   ];
-  rust-toolchain = pkgs.pkgsx86_64Darwin.rust-bin.fromRustupToolchain {
-      channel="stable";
-      profile="default";
-      components = [
-        "rust-std"
-        "cargo"
-        "rustc"
-      ];
-      };
 
-in with pkgs.pkgsx86_64Darwin; mkShell {
+  mkClangShell = pkgs.pkgsx86_64Darwin.mkShell.override { stdenv = pkgs.pkgsx86_64Darwin.clang13Stdenv; };
+
+in with pkgs.pkgsx86_64Darwin; mkClangShell {
   nativeBuildInputs = [
     pkg-config
-    rust-toolchain
+    rust-stable
 
     pkgs.nodejs-16_x
     (pkgs.nodejs-16_x.pkgs.pnpm.override {
@@ -47,7 +46,10 @@ in with pkgs.pkgsx86_64Darwin; mkShell {
     go_1_20
   ];
 
-  buildInputs =  [apple_libs];
-
+  buildInputs =  [
+    libiconv
+  ];
+  #CC="${clang13Stdenv.cc.cc}/bin/clang";
+  CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER = "${clang13Stdenv.cc.cc}/bin/clang";
 }
 
