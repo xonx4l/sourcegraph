@@ -33,7 +33,9 @@ import {
     useObservable,
 } from '@sourcegraph/wildcard'
 
-import { PreciseIndexFields, PreciseIndexState } from '../../../../graphql-operations'
+import { CommitGraph } from '../../../../codeintel/CommitGraph'
+import { GitRefType, PreciseIndexFields, PreciseIndexState } from '../../../../graphql-operations'
+import { queryGitReferences } from '../../../../repo/GitReference'
 import { FlashMessage } from '../../configuration/components/FlashMessage'
 import { AuditLogPanel } from '../components/AuditLog'
 import { PreciseIndexLastUpdated } from '../components/CodeIntelLastUpdated'
@@ -41,6 +43,7 @@ import { DependenciesList, DependentsList } from '../components/Dependencies'
 import { IndexTimeline } from '../components/IndexTimeline'
 import { ProjectDescription } from '../components/ProjectDescription'
 import { RetentionList } from '../components/RetentionList'
+import { queryGitCommits } from '../hooks/queryCommits'
 import { queryDependencyGraph as defaultQueryDependencyGraph } from '../hooks/queryDependencyGraph'
 import { queryPreciseIndex as defaultQueryPreciseIndex } from '../hooks/queryPreciseIndex'
 import { useDeletePreciseIndex as defaultUseDeletePreciseIndex } from '../hooks/useDeletePreciseIndex'
@@ -97,6 +100,8 @@ export const CodeIntelPreciseIndexPage: FunctionComponent<CodeIntelPreciseIndexP
             [id, queryPreciseIndex, apolloClient]
         )
     )
+
+    useMemo(() => queryGitCommits('github.com/sourcegraph/sourcegraph', apolloClient), [])
 
     const deleteUpload = useCallback(async (): Promise<void> => {
         if (!indexOrError || isErrorLike(indexOrError) || !window.confirm('Delete index?')) {
@@ -377,6 +382,7 @@ export const CodeIntelPreciseIndexPage: FunctionComponent<CodeIntelPreciseIndexP
                         )}
                     </TabPanels>
                 </Tabs>
+                <CommitGraph />
             </Container>
         </>
     )

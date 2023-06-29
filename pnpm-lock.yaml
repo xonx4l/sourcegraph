@@ -1,9 +1,5 @@
 lockfileVersion: '6.0'
 
-settings:
-  autoInstallPeers: true
-  excludeLinksFromLockfile: false
-
 overrides:
   browserify-zlib: 0.2.0
   '@types/webpack': '5'
@@ -126,6 +122,18 @@ importers:
       '@react-aria/live-announcer':
         specifier: ^3.1.0
         version: 3.1.0
+      '@react-sigma/core':
+        specifier: ^3.4.1
+        version: 3.4.1(graphology@0.25.1)(lodash@4.17.21)(react@18.1.0)(sigma@3.0.0-alpha3)
+      '@react-sigma/layout-circular':
+        specifier: ^3.4.1
+        version: 3.4.1(graphology-layout@0.6.1)(graphology@0.25.1)(lodash@4.17.21)(react@18.1.0)(sigma@3.0.0-alpha3)
+      '@react-sigma/layout-forceatlas2':
+        specifier: ^3.4.1
+        version: 3.4.1(graphology-layout-forceatlas2@0.10.1)(graphology@0.25.1)(lodash@4.17.21)(react@18.1.0)(sigma@3.0.0-alpha3)
+      '@react-sigma/layout-noverlap':
+        specifier: ^3.4.1
+        version: 3.4.1(graphology-layout-noverlap@0.4.2)(graphology@0.25.1)(lodash@4.17.21)(react@18.1.0)(sigma@3.0.0-alpha3)
       '@sentry/browser':
         specifier: ^7.8.1
         version: 7.8.1
@@ -264,6 +272,12 @@ importers:
       graphiql:
         specifier: ^1.11.5
         version: 1.11.5(@codemirror/language@6.2.0)(@types/node@13.13.5)(graphql-ws@5.13.1)(graphql@15.4.0)(react-dom@18.1.0)(react@18.1.0)
+      graphology:
+        specifier: ^0.25.1
+        version: 0.25.1(graphology-types@0.24.7)
+      graphology-types:
+        specifier: ^0.24.7
+        version: 0.24.7
       handlebars:
         specifier: ^4.7.7
         version: 4.7.7
@@ -420,6 +434,9 @@ importers:
       semver:
         specifier: ^7.3.2
         version: 7.3.8
+      sigma:
+        specifier: 3.0.0-alpha3
+        version: 3.0.0-alpha3(graphology-types@0.24.7)
       stream-http:
         specifier: ^3.2.0
         version: 3.2.0
@@ -8510,6 +8527,73 @@ packages:
     resolution: {integrity: sha512-K0aGNn1TjalKj+65D7ycc1//H9roAQ51GJVk5ZJQFb2teECGmzd86bYDC0aYdbRf7gtovescq4Zt6FR0tgXiHQ==}
     dev: false
 
+  /@react-sigma/core@3.4.1(graphology@0.25.1)(lodash@4.17.21)(react@18.1.0)(sigma@3.0.0-alpha3):
+    resolution: {integrity: sha512-kUXPWByLoWSz0yyLvQgWi9Al/rBk4nyRSisTPNu2ueEM5hogq6AUXZf+2fvH1VkoO3r0K8bdDo8e7KnLBHz/bA==}
+    peerDependencies:
+      graphology: ^0.25.1
+      lodash: ^4.17.21
+      react: ^17.0.0 || ^18.0.0
+      sigma: ^2.4.0
+    dependencies:
+      graphology: 0.25.1(graphology-types@0.24.7)
+      lodash: 4.17.21
+      react: 18.1.0
+      sigma: 3.0.0-alpha3(graphology-types@0.24.7)
+    dev: false
+
+  /@react-sigma/layout-circular@3.4.1(graphology-layout@0.6.1)(graphology@0.25.1)(lodash@4.17.21)(react@18.1.0)(sigma@3.0.0-alpha3):
+    resolution: {integrity: sha512-l5WupD79axYYtjL0c3oaDw0RthG1mKQKbwu9AB4kCQzkLmaKhibkvOGuuX8bFqBbIy6EA69v9yuQovjCcvxIRQ==}
+    peerDependencies:
+      graphology-layout: 0.6.1
+    dependencies:
+      '@react-sigma/layout-core': 3.4.1(graphology@0.25.1)(lodash@4.17.21)(react@18.1.0)(sigma@3.0.0-alpha3)
+      graphology-layout: 0.6.1(graphology-types@0.24.7)
+    transitivePeerDependencies:
+      - graphology
+      - lodash
+      - react
+      - sigma
+    dev: false
+
+  /@react-sigma/layout-core@3.4.1(graphology@0.25.1)(lodash@4.17.21)(react@18.1.0)(sigma@3.0.0-alpha3):
+    resolution: {integrity: sha512-MbhwpyVKb5IVsOL5kCdLMDTnVK0R4LtDCO+OtJc/EKZeLQ5cikOaKEk/C7klxBvv8kCQ1e1StO2d+pNwa/Cq8Q==}
+    dependencies:
+      '@react-sigma/core': 3.4.1(graphology@0.25.1)(lodash@4.17.21)(react@18.1.0)(sigma@3.0.0-alpha3)
+    transitivePeerDependencies:
+      - graphology
+      - lodash
+      - react
+      - sigma
+    dev: false
+
+  /@react-sigma/layout-forceatlas2@3.4.1(graphology-layout-forceatlas2@0.10.1)(graphology@0.25.1)(lodash@4.17.21)(react@18.1.0)(sigma@3.0.0-alpha3):
+    resolution: {integrity: sha512-4n/GzKB6CS4XvfKAPLUZfBwAMAcGa2MfylQoV46I8TjaAlrffdGkZYock022NXFwZ7M2G0fxc7mZB8EHPHTWiA==}
+    peerDependencies:
+      graphology-layout-forceatlas2: ^0.10.1
+    dependencies:
+      '@react-sigma/layout-core': 3.4.1(graphology@0.25.1)(lodash@4.17.21)(react@18.1.0)(sigma@3.0.0-alpha3)
+      graphology-layout-forceatlas2: 0.10.1(graphology-types@0.24.7)
+    transitivePeerDependencies:
+      - graphology
+      - lodash
+      - react
+      - sigma
+    dev: false
+
+  /@react-sigma/layout-noverlap@3.4.1(graphology-layout-noverlap@0.4.2)(graphology@0.25.1)(lodash@4.17.21)(react@18.1.0)(sigma@3.0.0-alpha3):
+    resolution: {integrity: sha512-N4W6o5CWwBBJD8dyECHWoWYHs1umJGxzjjYvFTX1qNkbsPuwzaBa2IKR87GsGSOIcfKgtlQ0YZ5lIsez58slHA==}
+    peerDependencies:
+      graphology-layout-noverlap: ^0.4.2
+    dependencies:
+      '@react-sigma/layout-core': 3.4.1(graphology@0.25.1)(lodash@4.17.21)(react@18.1.0)(sigma@3.0.0-alpha3)
+      graphology-layout-noverlap: 0.4.2(graphology-types@0.24.7)
+    transitivePeerDependencies:
+      - graphology
+      - lodash
+      - react
+      - sigma
+    dev: false
+
   /@react-spring/animated@9.4.2(react@18.1.0):
     resolution: {integrity: sha512-Dzum5Ho8e+LIAegAqRyoQFakD2IVH3ZQ2nsFXJorAFq3Xjv6IVPz/+TNxb/wSvnsMludfoF+ZIf319FSFmgD5w==}
     peerDependencies:
@@ -13029,6 +13113,10 @@ packages:
       stream-buffers: 3.0.2
       tslib: 2.1.0
     dev: true
+
+  /@yomguithereal/helpers@1.1.1:
+    resolution: {integrity: sha512-UYvAq/XCA7xoh1juWDYsq3W0WywOB+pz8cgVnE1b45ZfdMhBvHDrgmSFG3jXeZSr2tMTYLGHFHON+ekG05Jebg==}
+    dev: false
 
   /@zxing/text-encoding@0.9.0:
     resolution: {integrity: sha512-U/4aVJ2mxI0aDNI8Uq0wEhMgY+u4CNtEb0om3+y3+niDAsoTCOB33UF0sxpzqzdqXLqmvc+vZyAt4O8pPdfkwA==}
@@ -19952,6 +20040,56 @@ packages:
       lodash: 4.17.21
     dev: true
 
+  /graphology-layout-forceatlas2@0.10.1(graphology-types@0.24.7):
+    resolution: {integrity: sha512-ogzBeF1FvWzjkikrIFwxhlZXvD2+wlY54lqhsrWprcdPjopM2J9HoMweUmIgwaTvY4bUYVimpSsOdvDv1gPRFQ==}
+    peerDependencies:
+      graphology-types: '>=0.19.0'
+    dependencies:
+      graphology-types: 0.24.7
+      graphology-utils: 2.5.2(graphology-types@0.24.7)
+    dev: false
+
+  /graphology-layout-noverlap@0.4.2(graphology-types@0.24.7):
+    resolution: {integrity: sha512-13WwZSx96zim6l1dfZONcqLh3oqyRcjIBsqz2c2iJ3ohgs3605IDWjldH41Gnhh462xGB1j6VGmuGhZ2FKISXA==}
+    peerDependencies:
+      graphology-types: '>=0.19.0'
+    dependencies:
+      graphology-types: 0.24.7
+      graphology-utils: 2.5.2(graphology-types@0.24.7)
+    dev: false
+
+  /graphology-layout@0.6.1(graphology-types@0.24.7):
+    resolution: {integrity: sha512-m9aMvbd0uDPffUCFPng5ibRkb2pmfNvdKjQWeZrf71RS1aOoat5874+DcyNfMeCT4aQguKC7Lj9eCbqZj/h8Ag==}
+    peerDependencies:
+      graphology-types: '>=0.19.0'
+    dependencies:
+      graphology-types: 0.24.7
+      graphology-utils: 2.5.2(graphology-types@0.24.7)
+      pandemonium: 2.4.1
+    dev: false
+
+  /graphology-types@0.24.7:
+    resolution: {integrity: sha512-tdcqOOpwArNjEr0gNQKCXwaNCWnQJrog14nJNQPeemcLnXQUUGrsCWpWkVKt46zLjcS6/KGoayeJfHHyPDlvwA==}
+    dev: false
+
+  /graphology-utils@2.5.2(graphology-types@0.24.7):
+    resolution: {integrity: sha512-ckHg8MXrXJkOARk56ZaSCM1g1Wihe2d6iTmz1enGOz4W/l831MBCKSayeFQfowgF8wd+PQ4rlch/56Vs/VZLDQ==}
+    peerDependencies:
+      graphology-types: '>=0.23.0'
+    dependencies:
+      graphology-types: 0.24.7
+    dev: false
+
+  /graphology@0.25.1(graphology-types@0.24.7):
+    resolution: {integrity: sha512-yYA7BJCcXN2DrKNQQ9Qf22zBHm/yTbyBR71T1MYBbGtywNHsv0QZtk8zaR6zxNcp2hCCZayUkHp9DyMSZCpoxQ==}
+    peerDependencies:
+      graphology-types: '>=0.24.0'
+    dependencies:
+      events: 3.3.0
+      graphology-types: 0.24.7
+      obliterator: 2.0.4
+    dev: false
+
   /graphql-config@4.3.6(@types/node@13.13.5)(graphql@15.4.0)(typescript@5.0.2):
     resolution: {integrity: sha512-i7mAPwc0LAZPnYu2bI8B6yXU5820Wy/ArvmOseDLZIu0OU1UTULEuexHo6ZcHXeT9NvGGaUPQZm8NV3z79YydA==}
     engines: {node: '>= 10.0.0'}
@@ -25338,6 +25476,12 @@ packages:
       pkg-types: 1.0.3
       ufo: 1.1.2
 
+  /mnemonist@0.39.5:
+    resolution: {integrity: sha512-FPUtkhtJ0efmEFGpU14x7jGbTB+s18LrzRL2KgoWz9YvcY3cPomz8tih01GbHwnGk/OmkOKfqd/RAQoc8Lm7DQ==}
+    dependencies:
+      obliterator: 2.0.4
+    dev: false
+
   /mocha@8.3.2:
     resolution: {integrity: sha512-UdmISwr/5w+uXLPKspgoV7/RXZwKRTiTjJ2/AC5ZiEztIoOYdfKb19+9jNmEInzx5pBsCyJQzarAxqIGBNYJhg==}
     engines: {node: '>= 10.12.0'}
@@ -26057,6 +26201,10 @@ packages:
     resolution: {integrity: sha512-91k8bjcldstRz1bG6zJo8lWD7c6QXcB4nTDUqiEvIL1xAsLoZlOOZZG+nd6YPz+V7zY1580J4Xxh1vZtyv4i/w==}
     dev: true
 
+  /obliterator@2.0.4:
+    resolution: {integrity: sha512-lgHwxlxV1qIg1Eap7LgIeoBWIMFibOjbrYPIPJZcI1mmGAI2m3lNYpK12Y+GBdPQ0U1hRwSord7GIaawz962qQ==}
+    dev: false
+
   /obuf@1.1.2:
     resolution: {integrity: sha512-PX1wu0AmAdPqOL1mWhqmlOd8kOIZQwGZw6rh7uby9fTc5lhaOWFLX3I6R1hrF9k3zUY40e6igsLGkDXK92LJNg==}
 
@@ -26471,6 +26619,12 @@ packages:
 
   /pako@1.0.11:
     resolution: {integrity: sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw==}
+
+  /pandemonium@2.4.1:
+    resolution: {integrity: sha512-wRqjisUyiUfXowgm7MFH2rwJzKIr20rca5FsHXCMNm1W5YPP1hCtrZfgmQ62kP7OZ7Xt+cR858aB28lu5NX55g==}
+    dependencies:
+      mnemonist: 0.39.5
+    dev: false
 
   /param-case@3.0.4:
     resolution: {integrity: sha512-RXlj7zCYokReqWpOPH9oYivUzLYZ5vAPIfEmCTNViosC78F8F0H9y7T7gG2M39ymgutxF5gcFEsyZQSph9Bp3A==}
@@ -29922,6 +30076,16 @@ packages:
       call-bind: 1.0.2
       get-intrinsic: 1.2.1
       object-inspect: 1.12.3
+
+  /sigma@3.0.0-alpha3(graphology-types@0.24.7):
+    resolution: {integrity: sha512-WpUqM7cleO67/n/kaDL3ZP9yC2+6CgxL3J3GkQNqdt50PwFD30DVmLNldxhv+fFiXo8AX0Er4qVflL8ll/fCcg==}
+    dependencies:
+      '@yomguithereal/helpers': 1.1.1
+      events: 3.3.0
+      graphology-utils: 2.5.2(graphology-types@0.24.7)
+    transitivePeerDependencies:
+      - graphology-types
+    dev: false
 
   /signal-exit@3.0.7:
     resolution: {integrity: sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==}
@@ -34201,3 +34365,7 @@ packages:
     name: tether
     version: 0.6.5
     dev: true
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false

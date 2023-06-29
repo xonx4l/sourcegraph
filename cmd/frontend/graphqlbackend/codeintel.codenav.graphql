@@ -49,6 +49,10 @@ extend type GitBlob {
     symbolInfo(line: Int!, character: Int!): SymbolInfo
 }
 
+extend type Repository {
+    indexVisibilityGraph: IndexVisibilityGraph!
+}
+
 """
 LSIF data available for a tree entry (file OR directory, see GitBlobLSIFData for file-specific
 resolvers and GitTreeLSIFData for directory-specific resolvers.)
@@ -455,4 +459,8 @@ type LineRange {
     The length.
     """
     length: Int!
+}
+
+type IndexVisibilityGraph {
+    stuff: Int
 }

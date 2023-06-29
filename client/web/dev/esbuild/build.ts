@@ -88,6 +88,7 @@ export const BUILD_OPTIONS: esbuild.BuildOptions = {
         '.ttf': 'file',
         '.woff2': 'file',
         '.png': 'file',
+        '.woff2': 'file',
     },
     target: 'esnext',
     sourcemap: true,

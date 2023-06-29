@@ -10301,6 +10301,10 @@ type CodeIntelCommit {
     The repository that contains this commit.
     """
     repository: CodeIntelRepository!
+
+    uploads: [PreciseIndex!]!
+
+    parents: [CodeIntelCommit!]!
 }
 
 """

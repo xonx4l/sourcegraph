@@ -6,7 +6,6 @@ import (
 	resolverstubs "github.com/sourcegraph/sourcegraph/internal/codeintel/resolvers"
 	sharedresolvers "github.com/sourcegraph/sourcegraph/internal/codeintel/shared/resolvers"
 	"github.com/sourcegraph/sourcegraph/internal/codeintel/shared/resolvers/gitresolvers"
-	"github.com/sourcegraph/sourcegraph/internal/codeintel/uploads/shared"
 	uploadsshared "github.com/sourcegraph/sourcegraph/internal/codeintel/uploads/shared"
 	"github.com/sourcegraph/sourcegraph/internal/database"
 	"github.com/sourcegraph/sourcegraph/internal/gitserver"
@@ -43,7 +42,7 @@ func (f *PreciseIndexResolverFactory) Create(
 	indexLoader IndexLoader,
 	locationResolver *gitresolvers.CachedLocationResolver,
 	traceErrs *observation.ErrCollector,
-	upload *shared.Upload,
+	upload *uploadsshared.Upload,
 	index *uploadsshared.Index,
 ) (resolverstubs.PreciseIndexResolver, error) {
 	return newPreciseIndexResolver(

@@ -18,6 +18,7 @@ import (
 	"github.com/sourcegraph/sourcegraph/cmd/frontend/graphqlbackend/graphqlutil"
 	"github.com/sourcegraph/sourcegraph/internal/api"
 	"github.com/sourcegraph/sourcegraph/internal/authz"
+	resolverstubs "github.com/sourcegraph/sourcegraph/internal/codeintel/resolvers"
 	"github.com/sourcegraph/sourcegraph/internal/database"
 	"github.com/sourcegraph/sourcegraph/internal/gitserver"
 	"github.com/sourcegraph/sourcegraph/internal/gitserver/gitdomain"
@@ -235,7 +236,8 @@ func (r *GitCommitResolver) ExternalURLs(ctx context.Context) ([]*externallink.R
 func (r *GitCommitResolver) Tree(ctx context.Context, args *struct {
 	Path      string
 	Recursive bool
-}) (*GitTreeEntryResolver, error) {
+},
+) (*GitTreeEntryResolver, error) {
 	treeEntry, err := r.path(ctx, args.Path, func(stat fs.FileInfo) error {
 		if !stat.Mode().IsDir() {
 			return errors.Errorf("not a directory: %q", args.Path)
@@ -256,7 +258,8 @@ func (r *GitCommitResolver) Tree(ctx context.Context, args *struct {
 
 func (r *GitCommitResolver) Blob(ctx context.Context, args *struct {
 	Path string
-}) (*GitTreeEntryResolver, error) {
+},
+) (*GitTreeEntryResolver, error) {
 	return r.path(ctx, args.Path, func(stat fs.FileInfo) error {
 		if mode := stat.Mode(); !(mode.IsRegular() || mode.Type()&fs.ModeSymlink != 0) {
 			return errors.Errorf("not a blob: %q", args.Path)
@@ -268,13 +271,15 @@ func (r *GitCommitResolver) Blob(ctx context.Context, args *struct {
 
 func (r *GitCommitResolver) File(ctx context.Context, args *struct {
 	Path string
-}) (*GitTreeEntryResolver, error) {
+},
+) (*GitTreeEntryResolver, error) {
 	return r.Blob(ctx, args)
 }
 
 func (r *GitCommitResolver) Path(ctx context.Context, args *struct {
 	Path string
-}) (*GitTreeEntryResolver, error) {
+},
+) (*GitTreeEntryResolver, error) {
 	return r.path(ctx, args.Path, func(_ fs.FileInfo) error { return nil })
 }
 
@@ -369,7 +374,8 @@ func (r *GitCommitResolver) Ancestors(ctx context.Context, args *AncestorsArgs) 
 
 func (r *GitCommitResolver) Diff(ctx context.Context, args *struct {
 	Base *string
-}) (*RepositoryComparisonResolver, error) {
+},
+) (*RepositoryComparisonResolver, error) {
 	oidString := string(r.oid)
 	base := oidString + "~"
 	if args.Base != nil {
@@ -384,7 +390,8 @@ func (r *GitCommitResolver) Diff(ctx context.Context, args *struct {
 
 func (r *GitCommitResolver) BehindAhead(ctx context.Context, args *struct {
 	Revspec string
-}) (*behindAheadCountsResolver, error) {
+},
+) (*behindAheadCountsResolver, error) {
 	counts, err := r.gitserverClient.GetBehindAhead(ctx, r.gitRepo, args.Revspec, string(r.oid))
 	if err != nil {
 		return nil, err
@@ -439,4 +446,8 @@ func (r *GitCommitResolver) canonicalRepoRevURL() *url.URL {
 
 func (r *GitCommitResolver) Ownership(ctx context.Context, args ListOwnershipArgs) (OwnershipConnectionResolver, error) {
 	return EnterpriseResolvers.ownResolver.GitCommitOwnership(ctx, r, args)
+}
+
+func (r *GitCommitResolver) Uploads() ([]resolverstubs.PreciseIndexResolver, error) {
+	// factory := graphql.NewPreciseIndexResolverFactory
 }
