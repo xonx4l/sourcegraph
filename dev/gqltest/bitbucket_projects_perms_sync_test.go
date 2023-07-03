@@ -21,6 +21,7 @@ const (
 
 func TestBitbucketProjectsPermsSync_SetUnrestrictedPermissions(t *testing.T) {
 	if len(*bbsURL) == 0 || len(*bbsToken) == 0 || len(*bbsUsername) == 0 {
+		t.Logf("SKIPPING")
 		t.Skip("Environment variable BITBUCKET_SERVER_URL, BITBUCKET_SERVER_TOKEN, or BITBUCKET_SERVER_USERNAME is not set")
 	}
 
@@ -64,6 +65,7 @@ func TestBitbucketProjectsPermsSync_SetUnrestrictedPermissions(t *testing.T) {
 
 func TestBitbucketProjectsPermsSync_FromRestrictedToUnrestrictedPermissions(t *testing.T) {
 	if len(*bbsURL) == 0 || len(*bbsToken) == 0 || len(*bbsUsername) == 0 {
+		t.Logf("SKIPPING")
 		t.Skip("Environment variable BITBUCKET_SERVER_URL, BITBUCKET_SERVER_TOKEN, or BITBUCKET_SERVER_USERNAME is not set")
 	}
 
@@ -126,6 +128,7 @@ func TestBitbucketProjectsPermsSync_FromRestrictedToUnrestrictedPermissions(t *t
 
 func TestBitbucketProjectsPermsSync_SetPendingPermissions_NonExistentUsersOnly(t *testing.T) {
 	if len(*bbsURL) == 0 || len(*bbsToken) == 0 || len(*bbsUsername) == 0 {
+		t.Logf("SKIPPING")
 		t.Skip("Environment variable BITBUCKET_SERVER_URL, BITBUCKET_SERVER_TOKEN, or BITBUCKET_SERVER_USERNAME is not set")
 	}
 
@@ -191,6 +194,7 @@ func TestBitbucketProjectsPermsSync_SetPendingPermissions_NonExistentUsersOnly(t
 
 func TestBitbucketProjectsPermsSync_SetPendingPermissions_ExistentAndNonExistentUsers(t *testing.T) {
 	if len(*bbsURL) == 0 || len(*bbsToken) == 0 || len(*bbsUsername) == 0 {
+		t.Logf("SKIPPING")
 		t.Skip("Environment variable BITBUCKET_SERVER_URL, BITBUCKET_SERVER_TOKEN, or BITBUCKET_SERVER_USERNAME is not set")
 	}
 
