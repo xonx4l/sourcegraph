@@ -155,7 +155,7 @@ func bazelTest(targets ...string) func(*bk.Pipeline) {
 	}
 
 	// TEMPORARY
-	cmd := bazelCmd("test //testing:backend_integrationn_test")
+	cmd := bazelCmd("test //testing:backend_integration_test")
 	bazelTestCmds = append(bazelTestCmds,
 		bazelAnnouncef("bazel test //testing:backend_integration_test"),
 		bk.Cmd(cmd))
