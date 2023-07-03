@@ -155,7 +155,7 @@ func bazelTest(targets ...string) func(*bk.Pipeline) {
 	}
 
 	// TEMPORARY
-	cmd := bazelCmd("run //dev/gqltest:gqltest_test --runs_per_test 15 --cache_test_results=no")
+	cmd := bazelCmd("run //dev/gqltest:gqltest_test --test_sharding_strategy=disabled")
 	bazelTestCmds = append(bazelTestCmds,
 		bazelAnnouncef("bazel test //dev/gqltest:gqltest_test --runs_per_test 5"),
 		bk.Cmd(cmd))
