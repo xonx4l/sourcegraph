@@ -2,6 +2,7 @@
 // gen-pipeline.go command.
 package ci
 
+// youplaboum
 import (
 	"bufio"
 	"fmt"
@@ -109,10 +110,10 @@ func GeneratePipeline(c Config) (*bk.Pipeline, error) {
 		for scanner.Scan() {
 			line := scanner.Text()
 			if strings.HasPrefix(line, "!bazel") {
-				bzCmd = strings.TrimPrefix(line, "!")
+				bzCmd = strings.TrimPrefix(line, "!bazel")
 
 				ops.Append(func(pipeline *bk.Pipeline) {
-					pipeline.AddStep(":bazel: User given command",
+					pipeline.AddStep(":bazel::desktop_computer: bazel "+bzCmd,
 						bk.Agent("queue", "bazel"),
 						bk.Cmd(bazelCmd(bzCmd)),
 					)
