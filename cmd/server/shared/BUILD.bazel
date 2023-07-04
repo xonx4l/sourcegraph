@@ -20,7 +20,6 @@ go_library(
     deps = [
         "//cmd/server/internal/goreman",
         "//cmd/server/shared/assets",
-        "//internal/conf/deploy",
         "//internal/database/postgresdsn",
         "//internal/env",
         "//internal/hostname",

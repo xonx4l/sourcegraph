@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 
 	sglog "github.com/sourcegraph/log"
-
-	"github.com/sourcegraph/sourcegraph/internal/conf/deploy"
 )
 
 func maybeBlobstore(logger sglog.Logger) []string {
@@ -16,7 +14,7 @@ func maybeBlobstore(logger sglog.Logger) []string {
 	}
 
 	// Point at local blobstore endpoint.
-	SetDefaultEnv("PRECISE_CODE_INTEL_UPLOAD_AWS_ENDPOINT", deploy.BlobstoreDefaultEndpoint())
+	SetDefaultEnv("PRECISE_CODE_INTEL_UPLOAD_AWS_ENDPOINT", "http://127.0.0.1:9000")
 	SetDefaultEnv("PRECISE_CODE_INTEL_UPLOAD_BACKEND", "blobstore")
 
 	// cmd/server-specific blobstore env vars
