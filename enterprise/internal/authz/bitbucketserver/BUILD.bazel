@@ -34,6 +34,7 @@ go_test(
     ],
     data = glob(["testdata/**"]),
     embed = [":bitbucketserver"],
+    tags = ["no-cache"],
     deps = [
         "//internal/api",
         "//internal/authz",
