@@ -46,6 +46,7 @@ BUILD_DEPS = [
     ":node_modules/lodash-es",
     ":node_modules/@popperjs/core",
     ":node_modules/ts-key-enum",
+    ":node_modules/vite",
     "//:node_modules/@codemirror/autocomplete",
     "//:node_modules/@codemirror/commands",
     "//:node_modules/@apollo/client",
