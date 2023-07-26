@@ -51,6 +51,10 @@ export default defineConfig(({ mode }) => {
             },
         },
         server: {
+            // Allow setting the port via env variables to make it easier to integrate with
+            // our existing caddy setup (which proxies requests to a specific port).
+            port: process.env.SK_PORT || undefined,
+            strictPort: !!process.env.SV_PORT,
             proxy: {
                 // Proxy requests to specific endpoints to a real Sourcegraph
                 // instance.
@@ -61,6 +65,7 @@ export default defineConfig(({ mode }) => {
                 },
             },
         },
+
         optimizeDeps: {
             exclude: [
                 // Without addings this Vite throws an error

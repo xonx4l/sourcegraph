@@ -11,7 +11,8 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 js_library(
     name = "graphql_operations_files",
     # Keep in sync with glob in client/shared/dev/generateGraphQlOperations.js
-    srcs = glob(["src/**/*.ts"],
+    srcs = glob(
+        ["src/**/*.ts"],
         [
             # TODO: Ignore legacy build generated file as it conflicts with the Bazel
             # build. This can be removed after the migration.
@@ -45,18 +46,19 @@ SRCS = [
     "//client/wildcard:sass-breakpoints",
     "//client/wildcard:global-style-sources",
     "//ui/assets/img:copy",
-] + glob(["src/" + d for d in [
-    "**/*.scss",
-    "**/*.svg",
-    "**/*.ts",
-    "**/*.svelte",
-    "**/*.html",
-    "**/*.tsx",
+] + glob(
+    ["src/" + d for d in [
+        "**/*.scss",
+        "**/*.svg",
+        "**/*.ts",
+        "**/*.svelte",
+        "**/*.html",
+        "**/*.tsx",
     ]],
     [
         "src/lib/graphql-operations.ts",
     ],
- )
+)
 
 BUILD_DEPS = [
     ":graphql_operations_ts",
@@ -116,15 +118,16 @@ npm_link_all_packages(name = "node_modules")
 vite_bin.vite(
     name = "web-sveltekit",
     srcs = SRCS + BUILD_DEPS + CONFIGS,
+    outs = ["build"],
     args = [
         "build",
         "-c vite.config.ts",
     ],
     chdir = package_name(),
-    outs = ["build"],
     env = {
         "BAZEL": "1",
-    }
+    },
+    visibility = ["//ui/assets/enterprise:__pkg__"],
 )
 
 # TODO: remove this once we have some tests.

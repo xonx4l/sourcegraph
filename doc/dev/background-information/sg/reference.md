@@ -53,6 +53,7 @@ Available comamndsets in `sg.config.yaml`:
 * qdrant
 * web-standalone
 * web-standalone-prod
+* web-sveltekit-standalone
 
 ```sh
 # Run default environment, Sourcegraph enterprise:
@@ -140,6 +141,7 @@ Available commands in `sg.config.yaml`:
 * web-integration-build: Build development web application for integration tests
 * web-standalone-http-prod: Standalone web frontend (production) with API proxy to a configurable URL
 * web-standalone-http: Standalone web frontend (dev) with API proxy to a configurable URL
+* web-sveltekit-standalone: Standalone SvelteKit web frontend (dev) with API proxy to a configurable URL
 * web: Enterprise version of the web app
 * worker
 * zoekt-index-0

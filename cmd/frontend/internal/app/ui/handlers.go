@@ -8,7 +8,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -91,15 +90,11 @@ type Common struct {
 
 	Manifest *assets.WebpackManifest
 
-	WebpackDevServer bool // whether the Webpack dev server is running (WEBPACK_DEV_SERVER env var)
-
 	// The fields below have zero values when not on a repo page.
 	Repo         *types.Repo
 	Rev          string // unresolved / user-specified revision (e.x.: "@master")
 	api.CommitID        // resolved SHA1 revision
 }
-
-var webpackDevServer, _ = strconv.ParseBool(os.Getenv("WEBPACK_DEV_SERVER"))
 
 // repoShortName trims the first path element of the given repo name if it has
 // at least two path components.
@@ -181,8 +176,6 @@ func newCommon(w http.ResponseWriter, r *http.Request, db database.DB, title str
 			Description: "Sourcegraph is a web-based code search and navigation tool for dev teams. Search, navigate, and review code. Find answers.",
 			ShowPreview: r.URL.Path == "/sign-in" && r.URL.RawQuery == "returnTo=%2F",
 		},
-
-		WebpackDevServer: webpackDevServer,
 	}
 
 	if enableHTMLInject != "true" {
@@ -326,6 +319,11 @@ func serveBasicPage(db database.DB, title func(c *Common, r *http.Request) strin
 			return nil // request was handled
 		}
 		common.Title = title(common, r)
+
+		if (useSvelteKit(r)) {
+			return renderSvelteKit(w)
+		}
+
 		return renderTemplate(w, "app.html", common)
 	}
 }
@@ -475,6 +473,11 @@ func serveTree(db database.DB, title func(c *Common, r *http.Request) string) ha
 		}
 
 		common.Title = title(common, r)
+
+		if (useSvelteKit(r)) {
+			return renderSvelteKit(w)
+		}
+
 		return renderTemplate(w, "app.html", common)
 	}
 }
@@ -527,6 +530,11 @@ func serveRepoOrBlob(db database.DB, routeName string, title func(c *Common, r *
 			http.Redirect(w, r, r.URL.String(), http.StatusPermanentRedirect)
 			return nil
 		}
+
+		if (useSvelteKit(r)) {
+			return renderSvelteKit(w)
+		}
+
 		return renderTemplate(w, "app.html", common)
 	}
 }
