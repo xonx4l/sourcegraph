@@ -118,7 +118,7 @@ func NewTemplateUser(userKey string) *TemplateUser {
 
 func (t *TemplateUser) String() string {
 	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("Name: %s\n", t.UserKey))
+	sb.WriteString(fmt.Sprintf("Name: %s (%s)\n", t.UserKey, t.User.GetLogin()))
 	sb.WriteString("Teams\n")
 	for _, tt := range t.Teams {
 		sb.WriteString(fmt.Sprintf("- %s\n", tt.GetName()))
@@ -134,17 +134,8 @@ var userMap = map[string]string{
 	"testing":          "user3",
 }
 
-func (c *Client) GetOrCreateRepo(ctx context.Context, name string) (*github.Repository, error) {
-	c.gh.Repositories.Create(ctx, c.config.GithubOrg, &github.Repository{
-		Owner:       &github.User{},
-		Name:        new(string),
-		FullName:    new(string),
-		Description: new(string),
-		Permissions: map[string]bool{},
-		Private:     new(bool),
-		TeamID:      new(int64),
-	})
-
+func (c *Client) GetOrCreateRepo(ctx context.Context, team *github.Team, repo *github.Repository) (*github.Repository, error) {
+	c.gh.Repositories.Create(ctx, c.config.GithubOrg, repo)
 	return nil, nil
 }
 
@@ -201,7 +192,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to load Org Users: %v\n", err)
 	}
-	fmt.Printf("%v had %d users\n", c.config.GithubOrg, len(users))
 	for _, u := range users {
 		name := u.GetLogin()
 
@@ -213,7 +203,7 @@ func main() {
 		}
 	}
 
-	// Public Team
+	// Create teams and assign membership
 	teams := []struct {
 		Name        string
 		Description string
@@ -224,6 +214,7 @@ func main() {
 		{"User2-Team", "Team with only user 2", []string{"user2"}},
 		{"Mixed-Team", "Team with user 1, 2", []string{"user1", "user2"}},
 	}
+	var teamMap = make(map[string]*github.Team, 0)
 
 	for _, t := range teams {
 		team, err := c.GetOrCreateTeam(ctx, &github.NewTeam{
@@ -243,6 +234,24 @@ func main() {
 			}
 			templateUsers[key].Teams = append(templateUsers[key].Teams, team)
 		}
+		teamMap[team.GetName()] = team
+	}
+
+	// Create repos and assign to teams
+	repos := []struct {
+		Name       string
+		TeamKeys []*github.Team
+	}{
+		{"repo-public", []*github.Team{teamMap["Public-All"]}},
+		{"repo-private1", []*github.Team{teamMap["User1-Team"]}},
+		{"repo-private2", []*github.Team{teamMap["User2-Team"]}},
+		{"repo-private3", []*github.Team{teamMap["User3-Team"]}},
+	}
+
+	for _, r := range repos {
+		for _, t := range r.TeamKeys {
+			repo, err := c.GetOrCreateRepo(ctx, t, &github.Repository{
+			})
 	}
 
 	for _, v := range templateUsers {
