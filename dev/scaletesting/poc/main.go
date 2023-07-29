@@ -182,16 +182,16 @@ func (c *Client) OrgUsers(ctx context.Context) ([]*github.User, error) {
 //
 // Repos:
 // - repo/public
-//	- Admin
-//	- User1
-//	- User2
+// - Admin
+// - User1
+// - User2
 // - repo/private1
-//	- User1
+// - User1
 // - repo/private2
-//	- User2
+// - User2
 // - repo/private3
-//	- User1
-//	- User2
+// - User1
+// - User2
 
 func strp(v string) *string {
 	return &v
@@ -349,9 +349,68 @@ func setupGitHub(ctx context.Context, cfg *config) {
 	}
 }
 
+// tokenAuthTransport adds token header authentication to requests.
+type tokenAuthTransport struct {
+	token   string
+	wrapped http.RoundTripper
+}
+
+func (t *tokenAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Authorization", fmt.Sprintf(`token-sudo user="%s",token="%s"`, "sourcegraph", t.token))
+	return t.wrapped.RoundTrip(req)
+}
+
+type Q struct {
+	CurrentUser struct {
+		Username graphql.String
+	}
+}
+type AddExternalServiceInput struct {
+	Kind        graphql.String `json:"kind"`
+	DisplayName graphql.String `json:"displayName"`
+	Config      graphql.String `json:"config"`
+}
+
+type Mutation struct {
+	input AddExternalServiceInput `graphql:"addExternalService(input: $input)"`
+}
+
+//	curl \
+//	  -H 'Authorization: token-sudo user="SUDO-TO-USERNAME",token="sgp_8986cd7f808e6373ed7d499cafb23dd7ee4c481a"' \
+//	  -d '{"query":"query { currentUser { username } }"}' \
 func setupSourcegraph(ctx context.Context, cfg *config) error {
-	graphql.NewClient()
-	return nil
+	client := graphql.NewClient(cfg.Sourcegraph.URL, &http.Client{
+		Transport: &tokenAuthTransport{
+			token:   cfg.Sourcegraph.Token,
+			wrapped: http.DefaultTransport,
+		},
+	})
+	q := Q{}
+	err := client.Query(ctx, &q, nil)
+	if err != nil {
+		return err
+	}
+	log.Printf("RAWR: %v\n", q)
+
+	extSvc := Mutation{}
+	confJSON, err := json.Marshal(struct {
+		URL   string   `json:"url"`
+		Token string   `json:"token"`
+		Org   []string `json:"orgs"`
+	}{
+		URL:   cfg.CodeHost.URL,
+		Token: cfg.CodeHost.Token,
+		Org:   []string{"william-templates"},
+	})
+	if err != nil {
+		return err
+	}
+	input := AddExternalServiceInput{
+		Kind:        "GITHUB",
+		DisplayName: "TESTING",
+		Config:      graphql.String(confJSON),
+	}
+	return client.Mutate(ctx, &extSvc, map[string]any{"input": input})
 }
 
 func main() {
@@ -361,6 +420,8 @@ func main() {
 		log.Fatalf("[ERR] failed to load config.json: %v\n", err)
 	}
 	// setupGitHub()
-	setupSourcegraph(ctx, cfg)
+	if err := setupSourcegraph(ctx, cfg); err != nil {
+		log.Fatalf("[ERR] failed to setup sourcegraph: %v\n", err)
+	}
 
 }
