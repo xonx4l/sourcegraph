@@ -86,7 +86,7 @@ func (l StaticLimiter) TryAcquire(ctx context.Context) (_ func(context.Context, 
 	// Zero values implies no access - this is a fallback check, callers should
 	// be checking independently if access is granted.
 	if l.Identifier == "" || l.Limit <= 0 || l.Interval <= 0 {
-		return nil, NoAccessError{}
+		return nil, NoAccessError{feature: l.Feature}
 	}
 
 	// Check the current usage. If no record exists, redis will return 0.
@@ -204,7 +204,7 @@ func (l StaticLimiter) Usage(ctx context.Context) (_ int, _ time.Time, err error
 
 	// Zero values implies no access.
 	if l.Identifier == "" || l.Limit <= 0 || l.Interval <= 0 {
-		return 0, time.Time{}, NoAccessError{}
+		return 0, time.Time{}, NoAccessError{feature: l.Feature}
 	}
 
 	// Check the current usage. If no record exists, redis will return 0.

@@ -21,6 +21,20 @@ const (
 	FeatureEmbeddings      Feature = "embeddings"
 )
 
+var featureDisplayNames map[Feature]string = map[Feature]string{
+	FeatureChatCompletions: "Chat",
+	FeatureCodeCompletions: "Autocomplete",
+	FeatureEmbeddings:      "Embeddings",
+}
+
+func (f Feature) DisplayName() string {
+	display, ok := featureDisplayNames[f]
+	if !ok {
+		return string(f)
+	}
+	return display
+}
+
 type EmbeddingsRequest struct {
 	// Model is the name of the embeddings model to use.
 	Model string `json:"model"`
