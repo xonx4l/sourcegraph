@@ -83,6 +83,7 @@ func (l *concurrencyLimiter) TryAcquire(ctx context.Context) (func(context.Conte
 		Interval:           l.concurrentInterval,
 		UpdateRateLimitTTL: true, // always adjust
 		NowFunc:            l.nowFunc,
+		Feature:            l.feature,
 	}).TryAcquire(ctx)
 	if err != nil {
 		if errors.As(err, &limiter.NoAccessError{}) || errors.As(err, &limiter.RateLimitExceededError{}) {

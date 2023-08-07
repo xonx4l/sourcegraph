@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/sourcegraph/sourcegraph/internal/codygateway"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
@@ -36,6 +37,8 @@ type StaticLimiter struct {
 
 	// Identifier is the key used to identify the rate limit counter.
 	Identifier string
+	// Feature is the Cody Gateway feature this limiter is gating.
+	Feature codygateway.Feature
 
 	Redis    RedisStore
 	Limit    int64
@@ -108,6 +111,7 @@ func (l StaticLimiter) TryAcquire(ctx context.Context) (_ func(context.Context, 
 
 		return nil, RateLimitExceededError{
 			Limit:      l.Limit,
+			Feature:    l.Feature,
 			RetryAfter: retryAfter,
 		}
 	}

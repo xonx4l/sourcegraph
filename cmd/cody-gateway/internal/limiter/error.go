@@ -5,10 +5,13 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/sourcegraph/sourcegraph/internal/codygateway"
 )
 
 type RateLimitExceededError struct {
 	Limit      int64
+	Feature    codygateway.Feature
 	RetryAfter time.Time
 }
 
@@ -17,8 +20,12 @@ type RateLimitExceededError struct {
 func (e RateLimitExceededError) Error() string { return "rate limit exceeded" }
 
 func (e RateLimitExceededError) Summary() string {
-	return fmt.Sprintf("you have exceeded the rate limit of %d requests. Retry after %s",
-		e.Limit, e.RetryAfter.Truncate(time.Second))
+	return fmt.Sprintf(
+		"your organization has used all %d allocated %s requests until %s, please contact your admin for increased allocation",
+		e.Limit,
+		e.Feature,
+		e.RetryAfter.Truncate(time.Second),
+	)
 }
 
 func (e RateLimitExceededError) WriteResponse(w http.ResponseWriter) {

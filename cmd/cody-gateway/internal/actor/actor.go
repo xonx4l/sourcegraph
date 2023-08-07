@@ -175,6 +175,7 @@ func (a *Actor) Limiter(
 		Redis:       limiter.NewPrefixRedisStore(featurePrefix, redis),
 		Limit:       limit.Limit,
 		Interval:    limit.Interval,
+		Feature:     feature,
 		// Only update rate limit TTL if the actor has been updated recently.
 		UpdateRateLimitTTL: a.LastUpdated != nil && time.Since(*a.LastUpdated) < 5*time.Minute,
 		NowFunc:            time.Now,
