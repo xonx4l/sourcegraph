@@ -2,20 +2,44 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/sourcegraph/sourcegraph/dev/tst"
 )
 
+// PLAN
+// Requirements
+// Running Sourcegraph
+// new Org
+// * 2 Repos
+// ** 1 repo with private repo
+// * 1 user
+//
+
 func main() {
-	scenario := tst.New(context.Background(), tst.Github).
-		Org().
-		Users(tst.User1, tst.User2, tst.User3, tst.Admin).
-		Teams(tst.Team("team1", tst.User1), tst.Team("team2", tst.User2), tst.Team("team3", tst.User3, tst.Admin)).
-		Repos(
-			tst.PublicRepo("repo/public"),
-			tst.PrivateRepo("repo/pvt1", "team1"),
-			tst.PrivateRepo("repo/pvt2", "team2"),
-			tst.PrivateRepo("repo/pvt3", "team3"),
-		)
-	scenario.Build()
+	cfg, err := tst.LoadConfig("config.json")
+	if err != nil {
+		fmt.Printf("error loading scenario config: %v\n", err)
+	}
+	builder, err := tst.NewGitHubScenario(context.Background(), *cfg)
+	if err != nil {
+		fmt.Printf("failed to create scenario: %v", err)
+	}
+
+	s := builder.Org("tst-org").
+		Users(tst.Admin, tst.User1).
+		Teams(tst.Team("public", tst.Admin), tst.Team("private", tst.User1)).
+		Repos(tst.PublicRepo("sgtest/go-diff", "public", true), tst.PrivateRepo("sgtest/private", "public", true))
+
+	fmt.Println(s)
+
+	ctx := context.Background()
+	_, teardown, err := s.Setup(ctx)
+	if err != nil {
+		fmt.Printf("error during scenario setup: %v\n", err)
+		teardown(ctx)
+		os.Exit(1)
+	}
+	defer teardown(ctx)
 }
