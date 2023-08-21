@@ -125,6 +125,7 @@ func NewGitHubScenario(ctx context.Context, cfg Config) (*GitHubScenarioBuilder,
 func (sb *GitHubScenarioBuilder) Org(name string) *GitHubScenarioBuilder {
 	org := NewGitHubScenarioOrg(name)
 	sb.setupActions = append(sb.setupActions, org.CreateOrgAction(sb.client))
+	sb.setupActions = append(sb.setupActions, org.UpdateOrgPermissionsAction(sb.client))
 	sb.teardownActions = append(sb.teardownActions, org.DeleteOrgAction(sb.client))
 	return sb
 }
@@ -163,16 +164,16 @@ func (sb *GitHubScenarioBuilder) Repos(repos ...*GitHubScenarioRepo) *GitHubScen
 	for _, r := range repos {
 		if r.fork {
 			sb.setupActions = append(sb.setupActions, r.ForkRepoAction(sb.client))
-			sb.setupActions = append(sb.setupActions, r.GetForkedRepo(sb.client))
+			sb.setupActions = append(sb.setupActions, r.GetRepoAction(sb.client))
 			// Seems like you can't change permissions for a repo fork
 			//sb.setupActions = append(sb.setupActions, r.SetPermissionsAction(sb.client))
 			sb.teardownActions = append(sb.teardownActions, r.DeleteRepoAction(sb.client))
 		} else {
 			sb.setupActions = append(sb.setupActions, r.NewRepoAction(sb.client))
-			sb.setupActions = append(sb.setupActions, r.GetForkedRepo(sb.client))
-			sb.setupActions = append(sb.setupActions, r.InitRepoRepo(sb.client))
-			sb.setupActions = append(sb.setupActions, r.PushRepoAction(sb.client))
+			sb.setupActions = append(sb.setupActions, r.GetRepoAction(sb.client))
+			sb.setupActions = append(sb.setupActions, r.InitLocalRepoAction(sb.client))
 			sb.setupActions = append(sb.setupActions, r.SetPermissionsAction(sb.client))
+
 			sb.teardownActions = append(sb.teardownActions, r.DeleteRepoAction(sb.client))
 		}
 		sb.setupActions = append(sb.setupActions, r.AssignTeamAction(sb.client))
@@ -279,8 +280,4 @@ func (sb *GitHubScenarioBuilder) TearDown(ctx context.Context) error {
 
 	fmt.Println("-- Teardown --")
 	return applyActions(ctx, sb.store, reversed, false)
-}
-
-func strp(v string) *string {
-	return &v
 }

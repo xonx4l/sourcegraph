@@ -56,7 +56,7 @@ func (gr *GitHubScenarioRepo) ForkRepoAction(client *GitHubClient) *action {
 	}
 }
 
-func (gr *GitHubScenarioRepo) GetForkedRepo(client *GitHubClient) *action {
+func (gr *GitHubScenarioRepo) GetRepoAction(client *GitHubClient) *action {
 	fn := func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
 		// Wait till fork has synced
 		time.Sleep(1 * time.Second)
@@ -91,26 +91,50 @@ func (gr *GitHubScenarioRepo) GetForkedRepo(client *GitHubClient) *action {
 	}
 
 	return &action{
-		name: fmt.Sprintf("get-fork-repo(%s)", gr.Key()),
+		name: fmt.Sprintf("get-repo(%s)", gr.Key()),
 		doFn: fn,
 	}
 }
 
-func (gr *GitHubScenarioRepo) InitRepoAction(client *GitHubClient) *action {
+func (gr *GitHubScenarioRepo) InitLocalRepoAction(client *GitHubClient) *action {
+	// this should ideally be two actions but we need a nice way to share the directory location between the two actions
+	fn := func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
+		githubRepo, err := store.GetRepo(gr)
+		if err != nil {
+			return nil, err
+		}
+
+		localRepo, err := NewLocalRepo(githubRepo.GetName(), client.cfg.User, client.cfg.Password)
+		if err != nil {
+			return nil, err
+		}
+
+		err = localRepo.Init(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		err = localRepo.AddRemote(ctx, githubRepo.GetGitURL())
+		if err != nil {
+			return nil, err
+		}
+
+		err = localRepo.PushRemote(ctx, 5)
+		if err != nil {
+			return nil, err
+		}
+
+		localRepo.Cleanup()
+
+		return &actionResult[LocalRepo]{item: *localRepo}, nil
+	}
 	return &action{
-		name: fmt.Sprintf("init-repo(&s)", gr.Key()),
-		doFn: nil,
+		name: fmt.Sprintf("init-new-repo(&s)", gr.Key()),
+		doFn: fn,
 	}
 }
 
-func (gr *GitHubScenarioRepo) PushRepoAction(client *GitHubClient) *action {
-	return &action{
-		name: fmt.Sprintf("push-repo(&s)", gr.Key()),
-		doFn: nil,
-	}
-}
-
-func (gr *GitHubScenarioRepo) NewRepo(client *GitHubClient) *action {
+func (gr *GitHubScenarioRepo) NewRepoAction(client *GitHubClient) *action {
 	fn := func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
 		org, err := store.GetOrg()
 		if err != nil {
@@ -219,7 +243,7 @@ func (gr *GitHubScenarioRepo) AssignTeamAction(client *GitHubClient) *action {
 		return &actionResult[bool]{item: true}, nil
 	}
 	return &action{
-		name: fmt.Sprintf("assign-team(%s)", gr.key),
+		name: fmt.Sprintf("assign-team(%s, %s)", gr.key, gr.teamName),
 		doFn: fn,
 	}
 }

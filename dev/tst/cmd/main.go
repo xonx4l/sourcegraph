@@ -29,8 +29,8 @@ func main() {
 
 	s := builder.Org("tst-org").
 		Users(tst.Admin, tst.User1).
-		Teams(tst.Team("public", tst.Admin), tst.Team("private", tst.User1)).
-		Repos(tst.PublicRepo("sgtest/go-diff", "public", true), tst.PrivateRepo("sgtest/private", "public", true))
+		Teams(tst.Team("public-team", tst.Admin), tst.Team("private-team", tst.User1)).
+		Repos(tst.PublicRepo("sgtest/go-diff", "public-team", true), tst.PrivateRepo("sgtest/private", "private-team", true))
 
 	fmt.Println(s)
 

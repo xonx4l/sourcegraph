@@ -45,11 +45,34 @@ func (g GitHubScenarioOrg) CreateOrgAction(client *GitHubClient) *action {
 	}
 }
 
+func (g GitHubScenarioOrg) UpdateOrgPermissionsAction(client *GitHubClient) *action {
+	fn := func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
+		org, err := store.GetOrg()
+		if err != nil {
+			return nil, err
+		}
+
+		org.MembersCanCreatePrivateRepos = boolp(true)
+		org.MembersCanForkPrivateRepos = boolp(true)
+
+		org, err = client.UpdateOrg(ctx, org)
+		if err != nil {
+			return nil, err
+		}
+		store.SetOrg(org)
+		return &actionResult[*github.Organization]{item: org}, nil
+	}
+
+	return &action{
+		name: fmt.Sprintf("update-org-permissions(%s)", g.Key()),
+		doFn: fn,
+	}
+}
+
 func (g GitHubScenarioOrg) DeleteOrgAction(client *GitHubClient) *action {
 	fn := func(_ context.Context, store *scenarioStore) (ActionResult, error) {
 		org, err := store.GetOrg()
 		if err != nil {
-			fmt.Printf("failed to find org: %v\n", err)
 			return nil, err
 		}
 		fmt.Printf("NEED TO DELETE ORG: %s\n", org.GetLogin())

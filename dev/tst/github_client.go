@@ -41,6 +41,15 @@ func (gh *GitHubClient) createOrg(ctx context.Context, name string) (*github.Org
 	return org, err
 }
 
+func (gh *GitHubClient) UpdateOrg(ctx context.Context, org *github.Organization) (*github.Organization, error) {
+	_, resp, err := gh.c.Organizations.Edit(ctx, org.GetLogin(), org)
+	if resp.StatusCode >= 400 {
+		io.Copy(os.Stdout, resp.Body)
+		return nil, errors.Newf("failed to update actions permissions for org %q - GitHub status code %d: %v", org.GetLogin(), resp.StatusCode, err)
+	}
+	return org, err
+}
+
 func (gh *GitHubClient) orgUsers(ctx context.Context, org *github.Organization) ([]*github.User, error) {
 	users, _, err := gh.c.Organizations.ListMembers(ctx, org.GetLogin(), &github.ListMembersOptions{})
 	if err != nil {
