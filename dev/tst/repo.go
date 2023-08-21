@@ -70,6 +70,9 @@ func (gr *GitHubScenarioRepo) GetForkedRepo(client *GitHubClient) *action {
 		if len(parts) >= 2 {
 			repoName = parts[1]
 		} else {
+			repoName = parts[0]
+		}
+		if gr.fork && repoName == "" {
 			return nil, errors.Newf("incorrect repo format for %q - expecting {owner}/{name}")
 		}
 
@@ -78,7 +81,9 @@ func (gr *GitHubScenarioRepo) GetForkedRepo(client *GitHubClient) *action {
 			return nil, err
 		}
 		// Since this is a forked repo we need to update the GitHubScenarioRepo
-		// We only edit the name but the id stays the same
+		// We only edit the name but the id stays the same because the initial name
+		// is "someorg/repo" and the name should reflect the name with the current org
+		// "currentOrg/repo"
 		// TODO: this is nasty - find a better way
 		gr.name = repo.GetFullName()
 		store.SetRepo(gr, repo)
@@ -87,6 +92,52 @@ func (gr *GitHubScenarioRepo) GetForkedRepo(client *GitHubClient) *action {
 
 	return &action{
 		name: fmt.Sprintf("get-fork-repo(%s)", gr.Key()),
+		doFn: fn,
+	}
+}
+
+func (gr *GitHubScenarioRepo) InitRepoAction(client *GitHubClient) *action {
+	return &action{
+		name: fmt.Sprintf("init-repo(&s)", gr.Key()),
+		doFn: nil,
+	}
+}
+
+func (gr *GitHubScenarioRepo) PushRepoAction(client *GitHubClient) *action {
+	return &action{
+		name: fmt.Sprintf("push-repo(&s)", gr.Key()),
+		doFn: nil,
+	}
+}
+
+func (gr *GitHubScenarioRepo) NewRepo(client *GitHubClient) *action {
+	fn := func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
+		org, err := store.GetOrg()
+		if err != nil {
+			return nil, err
+		}
+
+		var repoName string
+		parts := strings.Split(gr.name, "/")
+		if len(parts) >= 2 {
+			repoName = parts[1]
+		} else {
+			repoName = parts[0]
+		}
+
+		repo, err := client.newRepo(ctx, org, repoName, gr.private)
+		if err != nil {
+			return nil, err
+		}
+
+		gr.name = repo.GetFullName()
+		store.SetRepo(gr, repo)
+
+		return &actionResult[bool]{item: true}, nil
+	}
+
+	return &action{
+		name: fmt.Sprintf("create-repo(%s)", gr.Key()),
 		doFn: fn,
 	}
 }

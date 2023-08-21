@@ -98,11 +98,6 @@ func (a *action) Complete() bool {
 	return a.complete
 }
 
-type GitHubClient struct {
-	cfg *CodeHost
-	c   *github.Client
-}
-
 type actionResult[T any] struct {
 	item T
 }
@@ -171,6 +166,13 @@ func (sb *GitHubScenarioBuilder) Repos(repos ...*GitHubScenarioRepo) *GitHubScen
 			sb.setupActions = append(sb.setupActions, r.GetForkedRepo(sb.client))
 			// Seems like you can't change permissions for a repo fork
 			//sb.setupActions = append(sb.setupActions, r.SetPermissionsAction(sb.client))
+			sb.teardownActions = append(sb.teardownActions, r.DeleteRepoAction(sb.client))
+		} else {
+			sb.setupActions = append(sb.setupActions, r.NewRepoAction(sb.client))
+			sb.setupActions = append(sb.setupActions, r.GetForkedRepo(sb.client))
+			sb.setupActions = append(sb.setupActions, r.InitRepoRepo(sb.client))
+			sb.setupActions = append(sb.setupActions, r.PushRepoAction(sb.client))
+			sb.setupActions = append(sb.setupActions, r.SetPermissionsAction(sb.client))
 			sb.teardownActions = append(sb.teardownActions, r.DeleteRepoAction(sb.client))
 		}
 		sb.setupActions = append(sb.setupActions, r.AssignTeamAction(sb.client))

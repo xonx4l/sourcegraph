@@ -13,6 +13,11 @@ import (
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
+type GitHubClient struct {
+	cfg *CodeHost
+	c   *github.Client
+}
+
 func (gh *GitHubClient) selectOrg(ctx context.Context) (*github.Organization, error) {
 	org, resp, err := gh.c.Organizations.Get(ctx, "william-templates")
 	if resp.StatusCode >= 299 {
@@ -126,6 +131,19 @@ func (gh *GitHubClient) getRepo(ctx context.Context, owner, repoName string) (*g
 	}
 
 	return repo, nil
+}
+
+func (gh *GitHubClient) newRepo(ctx context.Context, org *github.Organization, repoName string, private bool) (*github.Repository, error) {
+	repo, resp, err := gh.c.Repositories.Create(ctx, org.GetLogin(), &github.Repository{
+		Name:    &repoName,
+		Private: &private,
+	})
+
+	if resp.StatusCode >= 400 {
+		return nil, errors.Newf("failed to create repo %q - GitHub response code %d: err", repoName, resp.StatusCode, err)
+	}
+
+	return repo, err
 }
 
 func (gh *GitHubClient) forkRepo(ctx context.Context, org *github.Organization, owner, repoName string) error {
