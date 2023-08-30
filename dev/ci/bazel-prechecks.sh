@@ -8,7 +8,7 @@ bazelrc=(--bazelrc=.bazelrc --bazelrc=.aspect/bazelrc/ci.bazelrc --bazelrc=.aspe
 function generate_diff_artifact() {
   set -x
 
-  temp=$(mktemp -d -t "buildkite-$BUILDKITE_BUILD_NUMBER")
+  temp=$(mktemp -d -t "buildkite-$BUILDKITE_BUILD_NUMBER-XXXXXXXX")
   mv ./annotations/* $temp/
   git clean -ffdx
 
