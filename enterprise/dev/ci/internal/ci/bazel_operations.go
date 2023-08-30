@@ -157,8 +157,8 @@ func bazelTest(targets ...string) func(*bk.Pipeline) {
 	bazelTestCmds := []bk.StepOpt{}
 
 	cmds = append(cmds,
-		bk.Cmd("buildkite-agent artifact download bazel-configure.diff tmp/ --step bazel-prechecks"),
-		bk.Cmd("git apply tmp/bazel-configure.diff"),
+		bk.Cmd("buildkite-agent artifact download bazel-configure.diff . --step bazel-prechecks"),
+		bk.Cmd("git apply bazel-configure.diff"),
 	)
 
 	// bazel build //client/web:bundle is very resource hungry and often crashes when ran along other targets
