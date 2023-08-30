@@ -122,6 +122,7 @@ func bazelPrechecks() func(*bk.Pipeline) {
 		bk.Key("bazel-prechecks"),
 		bk.SoftFail(100),
 		bk.Agent("queue", "bazel"),
+		bk.ArtifactPaths("./bazel-configure.diff"),
 		bk.AnnotatedCmd("dev/ci/bazel-prechecks.sh", bk.AnnotatedCmdOpts{
 			Annotations: &bk.AnnotationOpts{
 				Type:         bk.AnnotationTypeWarning,
@@ -154,6 +155,11 @@ func bazelTest(targets ...string) func(*bk.Pipeline) {
 
 	// Test commands
 	bazelTestCmds := []bk.StepOpt{}
+
+	cmds = append(cmds,
+		bk.Cmd("buildkite-agent artifact download bazel-configure.diff tmp/ --step bazel-prechecks"),
+		bk.Cmd("git apply tmp/bazel-configure.diff"),
+	)
 
 	// bazel build //client/web:bundle is very resource hungry and often crashes when ran along other targets
 	// so we run it first to avoid failing builds midway.

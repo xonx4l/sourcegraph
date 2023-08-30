@@ -5,6 +5,17 @@ EXIT_CODE=0
 
 bazelrc=(--bazelrc=.bazelrc --bazelrc=.aspect/bazelrc/ci.bazelrc --bazelrc=.aspect/bazelrc/ci.sourcegraph.bazelrc)
 
+function generate_diff_artifact() {
+  git clean -ffdx
+
+  bazel "${bazelrc[@]}" configure
+  bazel "${bazelrc[@]}" run //:gazelle-update-repos
+
+  git diff > bazel-configure.diff
+}
+
+trap generate_diff_artifact EXIT
+
 echo "--- :bazel: Running bazel configure"
 bazel "${bazelrc[@]}" configure
 
@@ -23,7 +34,7 @@ if [[ $EXIT_CODE -ne 0 ]]; then
   bazel configure
   ```
 
-  #### For more information please see the [Bazel FAQ](https://docs.sourcegraph.com/dev/background-information/bazel#faq)
+  #### For more information please see the [Bazel FAQ](https://docs.sourcegraph.com/dev/background-information/bazel/faq)
 
 END
   exit "$EXIT_CODE"
@@ -47,7 +58,7 @@ if [[ $EXIT_CODE -ne 0 ]]; then
   bazel run //:gazelle-update-repos
   ```
 
-  #### For more information please see the [Bazel FAQ](https://docs.sourcegraph.com/dev/background-information/bazel#faq)
+  #### For more information please see the [Bazel FAQ](https://docs.sourcegraph.com/dev/background-information/bazel/faq)
 
 END
   exit "$EXIT_CODE"
