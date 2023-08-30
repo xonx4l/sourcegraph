@@ -65,21 +65,16 @@ func bazelPushImagesCmd(version string, isCandidate bool, depKey string) func(*b
 		candidate = "true"
 	}
 
-	cmds := []bk.StepOpt{
-		bk.Agent("queue", "bazel"),
-		bk.DependsOn(depKey),
-		bk.Key(stepKey),
-		bk.Env("PUSH_VERSION", version),
-		bk.Env("CANDIDATE_ONLY", candidate),
-	}
-
-	cmds = append(cmds, bazelApplyPrecheckChanges())
-
-	cmds = append(cmds, bk.Cmd(bazelStampedCmd(`build $$(bazel query 'kind("oci_push rule", //...)')`)),
-		bk.Cmd("./enterprise/dev/ci/push_all.sh"))
-
 	return func(pipeline *bk.Pipeline) {
-		pipeline.AddStep(stepName, cmds...)
+		pipeline.AddStep(stepName, bk.Agent("queue", "bazel"),
+			bk.DependsOn(depKey),
+			bk.Key(stepKey),
+			bk.Env("PUSH_VERSION", version),
+			bk.Env("CANDIDATE_ONLY", candidate),
+			bazelApplyPrecheckChanges(),
+			bk.Cmd(bazelStampedCmd(`build $$(bazel query 'kind("oci_push rule", //...)')`)),
+			bk.Cmd("./enterprise/dev/ci/push_all.sh"),
+		)
 	}
 }
 
@@ -130,7 +125,7 @@ func bazelPrechecks() func(*bk.Pipeline) {
 		bk.ArtifactPaths("./bazel-configure.diff"),
 		bk.AnnotatedCmd("dev/ci/bazel-prechecks.sh", bk.AnnotatedCmdOpts{
 			Annotations: &bk.AnnotationOpts{
-				Type:         bk.AnnotationTypeWarning,
+				Type:         bk.AnnotationTypeError,
 				IncludeNames: false,
 			},
 		}),
