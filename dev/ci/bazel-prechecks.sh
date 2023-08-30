@@ -7,18 +7,20 @@ bazelrc=(--bazelrc=.bazelrc --bazelrc=.aspect/bazelrc/ci.bazelrc --bazelrc=.aspe
 
 #shellcheck disable=SC2317
 function generate_diff_artifact() {
-  temp=$(mktemp -d -t "buildkite-$BUILDKITE_BUILD_NUMBER-XXXXXXXX")
-  mv ./annotations/* "$temp/"
-  git clean -ffdx
+  if [[ $EXIT_CODE -ne 0 ]]; then
+    temp=$(mktemp -d -t "buildkite-$BUILDKITE_BUILD_NUMBER-XXXXXXXX")
+    mv ./annotations/* "$temp/"
+    git clean -ffdx
 
-  bazel "${bazelrc[@]}" configure >/dev/null 2>&1
-  bazel "${bazelrc[@]}" run //:gazelle-update-repos >/dev/null 2>&1
+    bazel "${bazelrc[@]}" configure >/dev/null 2>&1
+    bazel "${bazelrc[@]}" run //:gazelle-update-repos >/dev/null 2>&1
 
-  git diff > bazel-configure.diff
+    git diff > bazel-configure.diff
 
-  # restore annotations
-  mkdir -p ./annotations
-  mv "$temp"/* ./annotations/
+    # restore annotations
+    mkdir -p ./annotations
+    mv "$temp"/* ./annotations/
+  fi
 }
 
 trap generate_diff_artifact EXIT
