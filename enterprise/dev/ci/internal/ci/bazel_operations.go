@@ -116,6 +116,7 @@ func bazelAnalysisPhase() func(*bk.Pipeline) {
 		)
 	}
 }
+
 func bazelPrechecks() func(*bk.Pipeline) {
 	cmds := []bk.StepOpt{
 		bk.Key("bazel-prechecks"),
@@ -144,6 +145,7 @@ func bazelAnnouncef(format string, args ...any) bk.StepOpt {
 func bazelTest(targets ...string) func(*bk.Pipeline) {
 	cmds := []bk.StepOpt{
 		bk.DependsOn("bazel-prechecks"),
+		bk.AllowDependencyFailure(),
 		bk.Agent("queue", "bazel"),
 		bk.Key("bazel-tests"),
 		bk.ArtifactPaths("./bazel-testlogs/enterprise/cmd/embeddings/shared/shared_test/*.log", "./command.profile.gz"),
@@ -180,6 +182,7 @@ func triggerBackCompatTest(buildOpts bk.BuildOptions) func(*bk.Pipeline) {
 		pipeline.AddTrigger(":bazel::snail: Async BackCompat Tests", "sourcegraph-backcompat",
 			bk.Key("trigger-backcompat"),
 			bk.DependsOn("bazel-prechecks"),
+			bk.AllowDependencyFailure(),
 			bk.Build(buildOpts),
 		)
 	}
