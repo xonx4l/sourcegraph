@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -u
+
+response=$(buildkite-agent artifact download bazel-configure.diff . --step bazel-prechecks)
+if [[ "$?" -ne 0 && "$response" == *"No artifacts found for downloading"* ]]; then
+  echo "--- No bazel-configure.diff artifact found, skipping diff check"
+  exit 0
+fi
+
+git apply bazel-configure.diff
