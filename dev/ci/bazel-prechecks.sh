@@ -18,6 +18,7 @@ function generate_diff_artifact() {
   git diff > bazel-configure.diff
 
   # restore annotations
+  mkdir -p ./annotations
   mv $temp/* ./annotations/
 }
 
