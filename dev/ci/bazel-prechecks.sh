@@ -18,7 +18,7 @@ function generate_diff_artifact() {
 
   # restore annotations
   mkdir -p ./annotations
-  mv "$temp/*" ./annotations/
+  mv "$temp"/* ./annotations/
 }
 
 trap generate_diff_artifact EXIT
