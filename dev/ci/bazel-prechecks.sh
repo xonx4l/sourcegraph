@@ -6,12 +6,18 @@ EXIT_CODE=0
 bazelrc=(--bazelrc=.bazelrc --bazelrc=.aspect/bazelrc/ci.bazelrc --bazelrc=.aspect/bazelrc/ci.sourcegraph.bazelrc)
 
 function generate_diff_artifact() {
+  git stash push \
+    --include-untracked --quiet --message 'saved annotations' \
+    ./annotations/*
   git clean -ffdx
 
-  bazel "${bazelrc[@]}" configure
-  bazel "${bazelrc[@]}" run //:gazelle-update-repos
+  bazel "${bazelrc[@]}" configure 2>&1 /dev/null
+  bazel "${bazelrc[@]}" run //:gazelle-update-repos 2>&1 /dev/null
 
   git diff > bazel-configure.diff
+
+  # restore annotations
+  git stash pop
 }
 
 trap generate_diff_artifact EXIT
@@ -90,6 +96,5 @@ END
     EXIT_CODE=100
   fi
 fi
-
 
 exit "$EXIT_CODE"
