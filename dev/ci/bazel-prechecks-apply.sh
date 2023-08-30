@@ -2,7 +2,7 @@
 
 set -u
 
-response=$(buildkite-agent artifact download bazel-configure.diff . --step bazel-prechecks)
+response=$(buildkite-agent artifact download bazel-configure.diff . --step bazel-prechecks 2>&1)
 status=$?
 if [[ $status -ne 0 && "$response" == *"No artifacts found for downloading"* ]]; then
   echo "--- No bazel-configure.diff artifact found, skipping diff check"
