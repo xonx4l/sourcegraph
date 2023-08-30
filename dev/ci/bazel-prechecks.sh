@@ -11,8 +11,8 @@ function generate_diff_artifact() {
     ./annotations/*
   git clean -ffdx
 
-  bazel "${bazelrc[@]}" configure 2>&1 /dev/null
-  bazel "${bazelrc[@]}" run //:gazelle-update-repos 2>&1 /dev/null
+  bazel "${bazelrc[@]}" configure >/dev/null 2>&1
+  bazel "${bazelrc[@]}" run //:gazelle-update-repos >/dev/null 2>&1
 
   git diff > bazel-configure.diff
 
