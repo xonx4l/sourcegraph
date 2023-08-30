@@ -65,16 +65,21 @@ func bazelPushImagesCmd(version string, isCandidate bool, depKey string) func(*b
 		candidate = "true"
 	}
 
+	cmds := []bk.StepOpt{
+		bk.Agent("queue", "bazel"),
+		bk.DependsOn(depKey),
+		bk.Key(stepKey),
+		bk.Env("PUSH_VERSION", version),
+		bk.Env("CANDIDATE_ONLY", candidate),
+	}
+
+	cmds = append(cmds, bazelApplyPrecheckChanges()...)
+
+	cmds = append(cmds, bk.Cmd(bazelStampedCmd(`build $$(bazel query 'kind("oci_push rule", //...)')`)),
+		bk.Cmd("./enterprise/dev/ci/push_all.sh"))
+
 	return func(pipeline *bk.Pipeline) {
-		pipeline.AddStep(stepName,
-			bk.Agent("queue", "bazel"),
-			bk.DependsOn(depKey),
-			bk.Key(stepKey),
-			bk.Env("PUSH_VERSION", version),
-			bk.Env("CANDIDATE_ONLY", candidate),
-			bk.Cmd(bazelStampedCmd(`build $$(bazel query 'kind("oci_push rule", //...)')`)),
-			bk.Cmd("./enterprise/dev/ci/push_all.sh"),
-		)
+		pipeline.AddStep(stepName, cmds...)
 	}
 }
 
@@ -143,6 +148,13 @@ func bazelAnnouncef(format string, args ...any) bk.StepOpt {
 	return bk.Cmd(fmt.Sprintf(`echo "--- :bazel: %s"`, msg))
 }
 
+func bazelApplyPrecheckChanges() []bk.StepOpt {
+	return []bk.StepOpt{
+		bk.Cmd("buildkite-agent artifact download bazel-configure.diff . --step bazel-prechecks"),
+		bk.Cmd("git apply bazel-configure.diff"),
+	}
+}
+
 func bazelTest(targets ...string) func(*bk.Pipeline) {
 	cmds := []bk.StepOpt{
 		bk.DependsOn("bazel-prechecks"),
@@ -156,10 +168,7 @@ func bazelTest(targets ...string) func(*bk.Pipeline) {
 	// Test commands
 	bazelTestCmds := []bk.StepOpt{}
 
-	cmds = append(cmds,
-		bk.Cmd("buildkite-agent artifact download bazel-configure.diff . --step bazel-prechecks"),
-		bk.Cmd("git apply bazel-configure.diff"),
-	)
+	cmds = append(cmds, bazelApplyPrecheckChanges()...)
 
 	// bazel build //client/web:bundle is very resource hungry and often crashes when ran along other targets
 	// so we run it first to avoid failing builds midway.
