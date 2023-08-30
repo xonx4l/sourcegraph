@@ -5,11 +5,10 @@ EXIT_CODE=0
 
 bazelrc=(--bazelrc=.bazelrc --bazelrc=.aspect/bazelrc/ci.bazelrc --bazelrc=.aspect/bazelrc/ci.sourcegraph.bazelrc)
 
+#shellcheck disable=SC2317
 function generate_diff_artifact() {
-  set -x
-
   temp=$(mktemp -d -t "buildkite-$BUILDKITE_BUILD_NUMBER-XXXXXXXX")
-  mv ./annotations/* $temp/
+  mv ./annotations/* "$temp/"
   git clean -ffdx
 
   bazel "${bazelrc[@]}" configure >/dev/null 2>&1
@@ -19,7 +18,7 @@ function generate_diff_artifact() {
 
   # restore annotations
   mkdir -p ./annotations
-  mv $temp/* ./annotations/
+  mv "$temp/*" ./annotations/
 }
 
 trap generate_diff_artifact EXIT
