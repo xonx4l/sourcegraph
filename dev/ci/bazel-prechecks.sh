@@ -6,9 +6,10 @@ EXIT_CODE=0
 bazelrc=(--bazelrc=.bazelrc --bazelrc=.aspect/bazelrc/ci.bazelrc --bazelrc=.aspect/bazelrc/ci.sourcegraph.bazelrc)
 
 function generate_diff_artifact() {
-  git stash push \
-    --include-untracked --quiet --message 'saved annotations' \
-    ./annotations/*
+  set -x
+
+  temp=$(mktemp -d -t "buildkite-$BUILDKITE_BUILD_NUMBER")
+  mv ./annotations/* $temp/
   git clean -ffdx
 
   bazel "${bazelrc[@]}" configure >/dev/null 2>&1
@@ -17,7 +18,7 @@ function generate_diff_artifact() {
   git diff > bazel-configure.diff
 
   # restore annotations
-  git stash pop
+  mv $temp/* ./annotations/
 }
 
 trap generate_diff_artifact EXIT
