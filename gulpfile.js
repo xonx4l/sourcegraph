@@ -16,10 +16,19 @@ const watchGenerate = gulp.series(generate, watchGenerators)
  */
 const build = gulp.series(generate, webWebpack)
 
+const tasks = [
+  watchGenerators,
+  developmentServer
+]
+
+if (process.env.SVELTEKIT) {
+  tasks.push(buildSvelteKit)
+}
+
 /**
  * Watches everything and rebuilds on file changes.
  */
-const development = gulp.series(generate, gulp.parallel(watchGenerators, developmentServer, buildSvelteKit))
+const development = gulp.series(generate, gulp.parallel(...tasks))
 
 module.exports = {
   generate,

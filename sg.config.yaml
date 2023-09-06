@@ -1494,6 +1494,15 @@ commandsets:
     env:
       QDRANT_ENDPOINT: 'localhost:6334'
 
+  enterprise-bazel-sveltekit:
+    <<: *enterprise_bazel_set
+    env:
+      SVELTEKIT: true
+
+  enterprise-sveltekit:
+    <<: *enterprise_set
+    env:
+      SVELTEKIT: true
 
 tests:
   # These can be run with `sg test [name]`
