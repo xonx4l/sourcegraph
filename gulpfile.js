@@ -16,10 +16,7 @@ const watchGenerate = gulp.series(generate, watchGenerators)
  */
 const build = gulp.series(generate, webWebpack)
 
-const tasks = [
-  watchGenerators,
-  developmentServer
-]
+const tasks = [watchGenerators, developmentServer]
 
 if (process.env.SVELTEKIT) {
   tasks.push(buildSvelteKit)

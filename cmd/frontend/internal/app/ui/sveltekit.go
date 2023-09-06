@@ -10,20 +10,20 @@ import (
 )
 
 var sveltekitEnabledRoutes = map[string]struct{}{
-	routeSearch: struct{}{},
-	routeTree: struct{}{},
-	routeBlob: struct{}{},
-	routeRepo: struct{}{},
-	routeRepoSettings: struct{}{},
-	routeRepoCodeGraph: struct{}{},
-	routeRepoCommit: struct{}{},
-	routeRepoBranches: struct{}{},
+	routeSearch:           struct{}{},
+	routeTree:             struct{}{},
+	routeBlob:             struct{}{},
+	routeRepo:             struct{}{},
+	routeRepoSettings:     struct{}{},
+	routeRepoCodeGraph:    struct{}{},
+	routeRepoCommit:       struct{}{},
+	routeRepoBranches:     struct{}{},
 	routeRepoBatchChanges: struct{}{},
-	routeRepoCommits: struct{}{},
-	routeRepoTags: struct{}{},
-	routeRepoCompare: struct{}{},
-	routeRepoStats: struct{}{},
-	routeRepoOwn: struct{}{},
+	routeRepoCommits:      struct{}{},
+	routeRepoTags:         struct{}{},
+	routeRepoCompare:      struct{}{},
+	routeRepoStats:        struct{}{},
+	routeRepoOwn:          struct{}{},
 }
 
 // useSvelteKit returns true if the route is configured to be supported by useSvelteKit
@@ -34,13 +34,12 @@ func useSvelteKit(r *http.Request) bool {
 		return false
 	}
 
-	if _, ok := sveltekitEnabledRoutes[route.GetName()]; !ok  {
+	if _, ok := sveltekitEnabledRoutes[route.GetName()]; !ok {
 		return false
 	}
 
 	return featureflag.FromContext(r.Context()).GetBoolOr("enable-sveltekit", false)
 }
-
 
 // renderSvelteKit writes SvelteKit's fallback page to the provided writer
 func renderSvelteKit(dst io.Writer) error {

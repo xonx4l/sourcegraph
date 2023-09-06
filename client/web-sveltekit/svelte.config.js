@@ -68,7 +68,7 @@ const config = {
     },
     paths: {
       relative: true,
-    }
+    },
   },
 }
 
