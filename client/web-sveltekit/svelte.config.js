@@ -66,6 +66,9 @@ const config = {
         config.include = [...(config.include ?? []), '../src/**/*.tsx', '../.storybook/*.ts']
       },
     },
+    paths: {
+      relative: true,
+    }
   },
 }
 
