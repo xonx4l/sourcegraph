@@ -41,11 +41,13 @@ Available comamndsets in `sg.config.yaml`:
 * dotcom
 * enterprise
 * enterprise-bazel
+* enterprise-bazel-sveltekit
 * enterprise-codeinsights
 * enterprise-codeintel 🧠
 * enterprise-codeintel-bazel
 * enterprise-codeintel-multi-queue-executor
 * enterprise-e2e
+* enterprise-sveltekit
 * iam
 * monitoring
 * monitoring-alerts
