@@ -14,7 +14,7 @@ if (process.env.BAZEL || process.env.DEPLOY_TYPE === 'dev') {
   adapter = sgAdapter({
     // When DEPLOY_TYPE is set to 'dev' we copy output files to the
     // 'assets' folder where the web server reads them from
-    out: (process.env.DEPLOY_TYPE === 'dev' ? '../../ui/assets/' : 'build/') + OUTPUT_DIR,
+    out: (false ? '../../ui/assets/' : 'build/') + OUTPUT_DIR,
     // Path from which the web server will serve the SvelteKit files
     assetPath: `.assets/${OUTPUT_DIR}`,
     fallback: 'index.html',
