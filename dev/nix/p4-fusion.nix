@@ -13,18 +13,7 @@
 }:
 let
   inherit (import ./util.nix { inherit lib; }) mkStatic unNixifyDylibs;
-  http-parser-static = ((mkStatic pkgsStatic.http-parser).overrideAttrs (oldAttrs: {
-    # http-parser makefile is a bit incomplete, so fill in the gaps here
-    # to move the static object and header files to the right location
-    # https://github.com/nodejs/http-parser/issues/310
-    buildFlags = [ "package" ];
-    installTargets = "package";
-    postInstall = ''
-      install -D libhttp_parser.a $out/lib/libhttp_parser.a
-      install -D  http_parser.h $out/include/http_parser.h
-      ls -la $out/lib $out/include
-    '';
-  }));
+  http-parser-static = mkStatic pkgsStatic.http-parser;
   libiconv-static = mkStatic pkgsStatic.libiconv;
   openssl-static = (mkStatic pkgsStatic.openssl).dev;
   pcre-static = (mkStatic pkgsStatic.pcre).dev;
