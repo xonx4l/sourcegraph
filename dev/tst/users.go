@@ -2,7 +2,6 @@ package tst
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-github/v53/github"
 
@@ -47,106 +46,101 @@ var User10 GitHubScenarioUser = *NewGitHubScenarioUser("user10")
 var Admin GitHubScenarioUser = *NewGitHubScenarioUser("admin")
 
 func preloadUsersAction(client *GitHubClient) *action {
-	fn := func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-		org, err := store.GetOrg()
-		if err != nil {
-			return nil, err
-		}
-		users, err := client.orgUsers(ctx, org)
-		if err != nil {
-			return nil, err
-		}
-		store.SetUsers(users)
-
-		return &actionResult[[]*github.User]{item: users}, nil
-	}
 	return &action{
-		name: "preload-users()",
-		doFn: fn,
+		id:   "",
+		name: "internal.preload-users",
+		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
+			org, err := store.GetOrg()
+			if err != nil {
+				return nil, err
+			}
+			users, err := client.orgUsers(ctx, org)
+			if err != nil {
+				return nil, err
+			}
+			store.SetUsers(users)
+
+			return &actionResult[[]*github.User]{item: users}, nil
+		},
 	}
 }
 
 func mapUsersAction(_ *GitHubClient, scenarioUsers []*GitHubScenarioUser) *action {
-	fn := func(_ context.Context, store *scenarioStore) (ActionResult, error) {
-		users, err := store.GetUsers()
-		if err != nil {
-			return nil, err
-		}
-		if len(scenarioUsers) > len(users) {
-			return nil, errors.Newf("not enough users to use for scenario - required %d, available %d", len(scenarioUsers), len(users))
-		}
-
-		for i, user := range scenarioUsers {
-			store.SetScenarioUserMapping(user, users[i])
-		}
-		return &actionResult[bool]{item: true}, nil
-	}
-
 	return &action{
-		name: "map-scenario-users()",
-		doFn: fn,
+		id:   "",
+		name: "internal.map-scenario-users()",
+		fn: func(_ context.Context, store *scenarioStore) (ActionResult, error) {
+			users, err := store.GetUsers()
+			if err != nil {
+				return nil, err
+			}
+			if len(scenarioUsers) > len(users) {
+				return nil, errors.Newf("not enough users to use for scenario - required %d, available %d", len(scenarioUsers), len(users))
+			}
+
+			for i, user := range scenarioUsers {
+				store.SetScenarioUserMapping(user, users[i])
+			}
+			return &actionResult[bool]{item: true}, nil
+		},
 	}
 }
 
 func userEmail(u *GitHubScenarioUser) string {
-	return "william.bezuidenhout@sourcegraph.com" //fmt.Sprintf("william.bezuidenhout@sourcegraph.com", u.Key())
+	return "tst-pkg-user@sourcegraph.com"
 }
 
 func (u *GitHubScenarioUser) GetUserAction(client *GitHubClient) *action {
-	name := u.Key()
+	name := u.Name()
 	if u.Name() == Admin.Name() {
 		name = client.cfg.User
 	}
-	fn := func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-		user, err := client.getUser(ctx, name)
-		if err != nil {
-			return nil, err
-		}
-
-		store.SetScenarioUserMapping(u, user)
-		return &actionResult[*github.User]{item: user}, nil
-	}
-
 	return &action{
-		name: fmt.Sprintf("get-user(%s)", name),
-		doFn: fn,
+		id:   u.Key(),
+		name: "get-user-" + name,
+		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
+			user, err := client.getUser(ctx, name)
+			if err != nil {
+				return nil, err
+			}
+
+			store.SetScenarioUserMapping(u, user)
+			return &actionResult[*github.User]{item: user}, nil
+		},
 	}
 }
 
 func (u *GitHubScenarioUser) CreateUserAction(client *GitHubClient) *action {
-	name := u.Key()
-	fn := func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-		user, err := client.createUser(ctx, "test", userEmail(u))
-		if err != nil {
-			return nil, err
-		}
-
-		store.SetScenarioUserMapping(u, user)
-		return &actionResult[*github.User]{item: user}, nil
-	}
-
 	return &action{
-		name: fmt.Sprintf("create-user(%s)", name),
-		doFn: fn,
+		id:   u.Key(),
+		name: "create-user",
+		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
+			user, err := client.createUser(ctx, "test", userEmail(u))
+			if err != nil {
+				return nil, err
+			}
+
+			store.SetScenarioUserMapping(u, user)
+			return &actionResult[*github.User]{item: user}, nil
+		},
 	}
 }
 
 func (u GitHubScenarioUser) DeleteUserAction(client *GitHubClient) *action {
-	fn := func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-		user, err := store.GetScenarioUser(u)
-		if err != nil {
-			return nil, err
-		}
-		err = client.deleteUser(ctx, user.GetLogin())
-		if err != nil {
-			return nil, err
-		}
-
-		return &actionResult[*github.User]{item: user}, nil
-	}
-
 	return &action{
-		name: fmt.Sprintf("delete-user(%s)", u.Key()),
-		doFn: fn,
+		id:   u.Key(),
+		name: "delete-user",
+		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
+			user, err := store.GetScenarioUser(u)
+			if err != nil {
+				return nil, err
+			}
+			err = client.deleteUser(ctx, user.GetLogin())
+			if err != nil {
+				return nil, err
+			}
+
+			return &actionResult[*github.User]{item: user}, nil
+		},
 	}
 }

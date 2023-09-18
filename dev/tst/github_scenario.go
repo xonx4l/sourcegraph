@@ -2,14 +2,11 @@ package tst
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
-	"math"
 	"strings"
 	"time"
 
 	"github.com/google/go-github/v53/github"
-	"github.com/google/uuid"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
@@ -71,17 +68,19 @@ type Action interface {
 	Hash() []byte
 	Complete() bool
 	Do(ctx context.Context, store *scenarioStore) (ActionResult, error)
+	String() string
 }
 
 type action struct {
+	id       string
 	name     string
 	hash     []byte
 	complete bool
-	doFn     ActionFn
+	fn       ActionFn
 }
 
 func (a *action) Do(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-	result, err := a.doFn(ctx, store)
+	result, err := a.fn(ctx, store)
 	a.complete = true
 	return result, err
 }
@@ -96,6 +95,10 @@ func (a *action) Name() string {
 
 func (a *action) Complete() bool {
 	return a.complete
+}
+
+func (a *action) String() string {
+	return fmt.Sprintf("%s (%s)", a.name, a.id)
 }
 
 type actionResult[T any] struct {
@@ -192,8 +195,8 @@ func PrivateRepo(name string, team string, fork bool) *GitHubScenarioRepo {
 
 func (sb *GitHubScenarioBuilder) setupPlan() string {
 	b := strings.Builder{}
-	for _, act := range sb.setupActions {
-		b.WriteString(act.Name())
+	for _, a := range sb.setupActions {
+		b.WriteString(a.String())
 		b.WriteByte('\n')
 	}
 
@@ -204,7 +207,7 @@ func (sb *GitHubScenarioBuilder) tearDownPlan() string {
 	b := strings.Builder{}
 	actions := sb.teardownActions
 	for i := len(actions) - 1; i >= 0; i-- {
-		b.WriteString(actions[i].Name())
+		b.WriteString(actions[i].String())
 		b.WriteByte('\n')
 	}
 
@@ -221,17 +224,6 @@ func (sb *GitHubScenarioBuilder) String() string {
 	b.WriteString("========\n")
 	b.WriteString(sb.tearDownPlan())
 	return b.String()
-}
-
-func id() string {
-	id := []byte(uuid.NewString())
-	return base64.RawStdEncoding.EncodeToString(id[:])
-
-}
-
-func joinID(v, sep, id string, max int) string {
-	length := int(math.Min(float64(len(id)), float64(max-len(sep)-len(v))))
-	return v + sep + id[:length]
 }
 
 func applyActions(ctx context.Context, store *scenarioStore, actions []Action, failFast bool) error {

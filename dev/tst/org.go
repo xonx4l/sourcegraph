@@ -30,57 +30,55 @@ func (o *GitHubScenarioOrg) Key() string {
 }
 
 func (g GitHubScenarioOrg) CreateOrgAction(client *GitHubClient) *action {
-	fn := func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-		org, err := client.createOrg(ctx, g.Key())
-		if err != nil {
-			return nil, err
-		}
-		store.SetOrg(org)
-		return &actionResult[*github.Organization]{item: org}, nil
-	}
-
 	return &action{
-		name: fmt.Sprintf("create-org(%s)", g.Key()),
-		doFn: fn,
+		id:   g.Key(),
+		name: "create-org",
+		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
+			org, err := client.createOrg(ctx, g.Key())
+			if err != nil {
+				return nil, err
+			}
+			store.SetOrg(org)
+			return &actionResult[*github.Organization]{item: org}, nil
+		},
 	}
 }
 
 func (g GitHubScenarioOrg) UpdateOrgPermissionsAction(client *GitHubClient) *action {
-	fn := func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-		org, err := store.GetOrg()
-		if err != nil {
-			return nil, err
-		}
-
-		org.MembersCanCreatePrivateRepos = boolp(true)
-		org.MembersCanForkPrivateRepos = boolp(true)
-
-		org, err = client.UpdateOrg(ctx, org)
-		if err != nil {
-			return nil, err
-		}
-		store.SetOrg(org)
-		return &actionResult[*github.Organization]{item: org}, nil
-	}
-
 	return &action{
-		name: fmt.Sprintf("update-org-permissions(%s)", g.Key()),
-		doFn: fn,
+		id:   g.Key(),
+		name: "update-org-permissions",
+		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
+			org, err := store.GetOrg()
+			if err != nil {
+				return nil, err
+			}
+
+			org.MembersCanCreatePrivateRepos = boolp(true)
+			org.MembersCanForkPrivateRepos = boolp(true)
+
+			org, err = client.UpdateOrg(ctx, org)
+			if err != nil {
+				return nil, err
+			}
+			store.SetOrg(org)
+			return &actionResult[*github.Organization]{item: org}, nil
+		},
 	}
+
 }
 
 func (g GitHubScenarioOrg) DeleteOrgAction(client *GitHubClient) *action {
-	fn := func(_ context.Context, store *scenarioStore) (ActionResult, error) {
-		org, err := store.GetOrg()
-		if err != nil {
-			return nil, err
-		}
-		fmt.Printf("NEED TO DELETE ORG: %s\n", org.GetLogin())
-		return &actionResult[*github.Organization]{item: org}, nil
-	}
-
 	return &action{
+		id:   g.Key(),
 		name: fmt.Sprintf("delete-org(%s)", g.Key()),
-		doFn: fn,
+		fn: func(_ context.Context, store *scenarioStore) (ActionResult, error) {
+			org, err := store.GetOrg()
+			if err != nil {
+				return nil, err
+			}
+			fmt.Printf("NEED TO DELETE ORG: %s\n", org.GetLogin())
+			return &actionResult[*github.Organization]{item: org}, nil
+		},
 	}
 }
