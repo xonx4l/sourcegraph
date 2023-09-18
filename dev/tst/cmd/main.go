@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"testing"
 
 	"github.com/sourcegraph/sourcegraph/dev/tst"
 )
@@ -15,14 +16,10 @@ import (
 // * 2 Repos
 // ** 1 repo with private repo
 // * 1 user
-//
+var tstCfg *tst.Config
 
-func main() {
-	cfg, err := tst.LoadConfig("config.json")
-	if err != nil {
-		fmt.Printf("error loading scenario config: %v\n", err)
-	}
-	builder, err := tst.NewGitHubScenario(context.Background(), *cfg)
+func TestRepo(t *testing.T) {
+	builder, err := tst.NewGitHubScenario(context.Background(), t, tstCfg)
 	if err != nil {
 		fmt.Printf("failed to create scenario: %v", err)
 	}
@@ -42,4 +39,12 @@ func main() {
 		os.Exit(1)
 	}
 	defer teardown(ctx)
+}
+
+func main() {
+	cfg, err := tst.LoadConfig("config.json")
+	if err != nil {
+		fmt.Printf("error loading scenario config: %v\n", err)
+	}
+	tstCfg = cfg
 }

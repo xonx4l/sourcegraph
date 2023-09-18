@@ -375,9 +375,6 @@ type Mutation struct {
 	input AddExternalServiceInput `graphql:"addExternalService(input: $input)"`
 }
 
-//	curl \
-//	  -H 'Authorization: token-sudo user="SUDO-TO-USERNAME",token="sgp_8986cd7f808e6373ed7d499cafb23dd7ee4c481a"' \
-//	  -d '{"query":"query { currentUser { username } }"}' \
 func setupSourcegraph(ctx context.Context, cfg *config) error {
 	client := graphql.NewClient(cfg.Sourcegraph.URL, &http.Client{
 		Transport: &tokenAuthTransport{

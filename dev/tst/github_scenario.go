@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/google/go-github/v53/github"
+
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
@@ -40,6 +42,7 @@ func (s *ScenarioResource) Key() string {
 }
 
 type GitHubScenarioBuilder struct {
+	test            *testing.T
 	client          *GitHubClient
 	store           *scenarioStore
 	setupActions    []Action
@@ -67,7 +70,7 @@ type Action interface {
 	Name() string
 	Hash() []byte
 	Complete() bool
-	Do(ctx context.Context, store *scenarioStore) (ActionResult, error)
+	Do(ctx context.Context, t *testing.T, store *scenarioStore) (ActionResult, error)
 	String() string
 }
 
@@ -79,7 +82,8 @@ type action struct {
 	fn       ActionFn
 }
 
-func (a *action) Do(ctx context.Context, store *scenarioStore) (ActionResult, error) {
+func (a *action) Do(ctx context.Context, t *testing.T, store *scenarioStore) (ActionResult, error) {
+	t.Helper()
 	result, err := a.fn(ctx, store)
 	a.complete = true
 	return result, err
@@ -111,13 +115,14 @@ func (a *actionResult[T]) Get() any {
 
 var _scenario Scenario = &scenario{}
 
-func NewGitHubScenario(ctx context.Context, cfg Config) (*GitHubScenarioBuilder, error) {
-	client, err := NewGitHubClient(ctx, cfg)
+func NewGitHubScenario(ctx context.Context, t *testing.T, cfg *Config) (*GitHubScenarioBuilder, error) {
+	client, err := NewGitHubClient(ctx, *cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &GitHubScenarioBuilder{
+		test:            t,
 		client:          client,
 		store:           NewStore(),
 		setupActions:    make([]Action, 0),
@@ -125,7 +130,13 @@ func NewGitHubScenario(ctx context.Context, cfg Config) (*GitHubScenarioBuilder,
 	}, nil
 }
 
+func (sb *GitHubScenarioBuilder) T(t *testing.T) *GitHubScenarioBuilder {
+	sb.test = t
+	return sb
+}
+
 func (sb *GitHubScenarioBuilder) Org(name string) *GitHubScenarioBuilder {
+	sb.test.Helper()
 	org := NewGitHubScenarioOrg(name)
 	sb.setupActions = append(sb.setupActions, org.CreateOrgAction(sb.client))
 	sb.setupActions = append(sb.setupActions, org.UpdateOrgPermissionsAction(sb.client))
@@ -134,6 +145,7 @@ func (sb *GitHubScenarioBuilder) Org(name string) *GitHubScenarioBuilder {
 }
 
 func (sb *GitHubScenarioBuilder) Users(users ...GitHubScenarioUser) *GitHubScenarioBuilder {
+	sb.test.Helper()
 	for _, u := range users {
 		if u == Admin {
 			sb.setupActions = append(sb.setupActions, u.GetUserAction(sb.client))
@@ -154,6 +166,7 @@ func Team(name string, u ...GitHubScenarioUser) *GitHubScenarioTeam {
 }
 
 func (sb *GitHubScenarioBuilder) Teams(teams ...*GitHubScenarioTeam) *GitHubScenarioBuilder {
+	sb.test.Helper()
 	for _, t := range teams {
 		sb.setupActions = append(sb.setupActions, t.CreateTeamAction(sb.client))
 		sb.setupActions = append(sb.setupActions, t.AssignTeamAction(sb.client))
@@ -164,6 +177,7 @@ func (sb *GitHubScenarioBuilder) Teams(teams ...*GitHubScenarioTeam) *GitHubScen
 }
 
 func (sb *GitHubScenarioBuilder) Repos(repos ...*GitHubScenarioRepo) *GitHubScenarioBuilder {
+	sb.test.Helper()
 	for _, r := range repos {
 		if r.fork {
 			sb.setupActions = append(sb.setupActions, r.ForkRepoAction(sb.client))
@@ -194,6 +208,7 @@ func PrivateRepo(name string, team string, fork bool) *GitHubScenarioRepo {
 }
 
 func (sb *GitHubScenarioBuilder) setupPlan() string {
+	sb.test.Helper()
 	b := strings.Builder{}
 	for _, a := range sb.setupActions {
 		b.WriteString(a.String())
@@ -204,6 +219,7 @@ func (sb *GitHubScenarioBuilder) setupPlan() string {
 }
 
 func (sb *GitHubScenarioBuilder) tearDownPlan() string {
+	sb.test.Helper()
 	b := strings.Builder{}
 	actions := sb.teardownActions
 	for i := len(actions) - 1; i >= 0; i-- {
@@ -215,6 +231,7 @@ func (sb *GitHubScenarioBuilder) tearDownPlan() string {
 }
 
 func (sb *GitHubScenarioBuilder) String() string {
+	sb.test.Helper()
 	b := strings.Builder{}
 	b.WriteString("Setup\n")
 	b.WriteString("======\n")
@@ -226,7 +243,8 @@ func (sb *GitHubScenarioBuilder) String() string {
 	return b.String()
 }
 
-func applyActions(ctx context.Context, store *scenarioStore, actions []Action, failFast bool) error {
+func applyActions(ctx context.Context, t *testing.T, store *scenarioStore, actions []Action, failFast bool) error {
+	t.Helper()
 	setupStart := time.Now().UTC()
 	var errs errors.MultiError
 	for _, action := range actions {
@@ -235,7 +253,7 @@ func applyActions(ctx context.Context, store *scenarioStore, actions []Action, f
 
 		var err error
 		if !action.Complete() {
-			_, err = action.Do(ctx, store)
+			_, err = action.Do(ctx, t, store)
 		} else {
 			fmt.Print("[SKIPPED]\n")
 			continue
@@ -259,17 +277,19 @@ func applyActions(ctx context.Context, store *scenarioStore, actions []Action, f
 }
 
 func (sb *GitHubScenarioBuilder) Setup(ctx context.Context) (Scenario, func(context.Context) error, error) {
+	sb.test.Helper()
 	fmt.Println("-- Setup --")
-	err := applyActions(ctx, sb.store, sb.setupActions, true)
+	err := applyActions(ctx, sb.test, sb.store, sb.setupActions, true)
 	return scenario{}, sb.TearDown, err
 }
 
 func (sb *GitHubScenarioBuilder) TearDown(ctx context.Context) error {
+	sb.test.Helper()
 	reversed := make([]Action, 0, len(sb.teardownActions))
 	for i := len(sb.teardownActions) - 1; i >= 0; i-- {
 		reversed = append(reversed, sb.teardownActions[i])
 	}
 
 	fmt.Println("-- Teardown --")
-	return applyActions(ctx, sb.store, reversed, false)
+	return applyActions(ctx, sb.test, sb.store, reversed, false)
 }
