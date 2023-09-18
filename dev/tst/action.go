@@ -19,6 +19,7 @@ type actionApplyCfg struct {
 	test     *testing.T
 	actions  []Action
 	store    *scenarioStore
+	reporter Reporter
 	failFast bool
 }
 
@@ -123,30 +124,31 @@ func (m *actionManager) String() string {
 }
 
 func (m *actionManager) Apply(ctx context.Context, cfg *actionApplyCfg) error {
+	cfg.test.Helper()
 	var errs errors.MultiError
 	for _, action := range cfg.actions {
-		fmt.Printf("Applying '%s' = ", action)
+		cfg.reporter.Writef("Applying '%s' = ", action)
 		now := time.Now().UTC()
 
 		var err error
 		if !action.Complete() {
 			_, err = action.Do(ctx, cfg.test, cfg.store)
 		} else {
-			fmt.Print("[SKIPPED]\n")
+			cfg.reporter.Writeln("[SKIPPED]")
 			continue
 		}
 
 		duration := time.Now().UTC().Sub(now)
 		if err != nil {
 			if cfg.failFast {
-				fmt.Printf("[FAILED] (%s)\n", duration.String())
+				cfg.reporter.Writef("[FAILED] (%s)\n", duration.String())
 				return err
 			} else {
-				fmt.Printf("[FAILED] (%s)\n", duration.String())
+				cfg.reporter.Writef("[FAILED] (%s)\n", duration.String())
 				errs = errors.Append(errs, err)
 			}
 		} else {
-			fmt.Printf("[SUCCESS] (%s)\n", duration.String())
+			cfg.reporter.Writef("[SUCCESS] (%s)\n", duration.String())
 		}
 	}
 	return errs

@@ -2,7 +2,6 @@ package tst
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -39,10 +38,11 @@ func (s *ScenarioResource) Key() string {
 }
 
 type GitHubScenarioBuilder struct {
-	test    *testing.T
-	client  *GitHubClient
-	store   *scenarioStore
-	actions *actionManager
+	test     *testing.T
+	client   *GitHubClient
+	store    *scenarioStore
+	actions  *actionManager
+	reporter Reporter
 }
 
 type Scenario interface {
@@ -65,16 +65,25 @@ func NewGitHubScenario(ctx context.Context, t *testing.T, cfg *Config) (*GitHubS
 	}
 
 	return &GitHubScenarioBuilder{
-		test:    t,
-		client:  client,
-		store:   NewStore(),
-		actions: NewActionManager(),
+		test:     t,
+		client:   client,
+		store:    NewStore(),
+		actions:  NewActionManager(),
+		reporter: NoopReporter{},
 	}, nil
 }
 
 func (sb *GitHubScenarioBuilder) T(t *testing.T) *GitHubScenarioBuilder {
 	sb.test = t
 	return sb
+}
+
+func (sb *GitHubScenarioBuilder) Verbose() {
+	sb.reporter = ConsoleReporter{}
+}
+
+func (sb *GitHubScenarioBuilder) Quiet() {
+	sb.reporter = NoopReporter{}
 }
 
 func (sb *GitHubScenarioBuilder) Org(name string) *GitHubScenarioBuilder {
@@ -145,30 +154,31 @@ func PrivateRepo(name string, team string, fork bool) *GitHubScenarioRepo {
 
 func (sb *GitHubScenarioBuilder) Setup(ctx context.Context) (Scenario, func(context.Context) error, error) {
 	sb.test.Helper()
-	fmt.Println("-- Setup --")
+	sb.reporter.Writeln("-- Setup --")
 	start := time.Now().UTC()
 	err := sb.actions.Apply(ctx, &actionApplyCfg{
 		test:     sb.test,
 		store:    sb.store,
 		actions:  sb.actions.setup,
+		reporter: sb.reporter,
 		failFast: false,
 	})
-	fmt.Printf("Run complete: %s\n", time.Now().UTC().Sub(start))
+	sb.reporter.Writef("Run complete: %s\n", time.Now().UTC().Sub(start))
 	return scenario{}, sb.TearDown, err
 }
 
 func (sb *GitHubScenarioBuilder) TearDown(ctx context.Context) error {
 	sb.test.Helper()
-	fmt.Println("-- Teardown --")
+	sb.reporter.Writeln("-- Teardown --")
 	start := time.Now().UTC()
 	err := sb.actions.Apply(ctx, &actionApplyCfg{
 		test:     sb.test,
 		store:    sb.store,
 		actions:  reverse(sb.actions.teardown),
+		reporter: sb.reporter,
 		failFast: false,
 	})
-	fmt.Printf("Run complete: %s\n", time.Now().UTC().Sub(start))
-	fmt.Println("-- Teardown --")
+	sb.reporter.Writef("Run complete: %s\n", time.Now().UTC().Sub(start))
 	return err
 }
 
