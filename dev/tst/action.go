@@ -10,17 +10,11 @@ import (
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
-type actionManager struct {
+type actionRunner struct {
+	T        *testing.T
+	Reporter Reporter
 	setup    []Action
 	teardown []Action
-}
-
-type actionApplyCfg struct {
-	test     *testing.T
-	actions  []Action
-	store    *scenarioStore
-	reporter Reporter
-	failFast bool
 }
 
 type ActionResult interface {
@@ -76,21 +70,23 @@ func (a *actionResult[T]) Get() any {
 	return a.item
 }
 
-func NewActionManager() *actionManager {
-	return &actionManager{
+func NewActionManager(t *testing.T) *actionRunner {
+	return &actionRunner{
+		T:        t,
 		setup:    make([]Action, 0),
 		teardown: make([]Action, 0),
+		Reporter: NoopReporter{},
 	}
 }
 
-func (m *actionManager) AddSetup(actions ...Action) {
+func (m *actionRunner) AddSetup(actions ...Action) {
 	m.setup = append(m.setup, actions...)
 }
-func (m *actionManager) AddTeardown(actions ...Action) {
+func (m *actionRunner) AddTeardown(actions ...Action) {
 	m.setup = append(m.teardown, actions...)
 }
 
-func (m *actionManager) setupPlan() string {
+func (m *actionRunner) setupPlan() string {
 	b := strings.Builder{}
 	for _, a := range m.setup {
 		b.WriteString(a.String())
@@ -100,7 +96,7 @@ func (m *actionManager) setupPlan() string {
 	return b.String()
 }
 
-func (m *actionManager) teardownPlan() string {
+func (m *actionRunner) teardownPlan() string {
 	b := strings.Builder{}
 	actions := m.teardown
 	for i := len(actions) - 1; i >= 0; i-- {
@@ -111,7 +107,7 @@ func (m *actionManager) teardownPlan() string {
 	return b.String()
 }
 
-func (m *actionManager) String() string {
+func (m *actionRunner) String() string {
 	b := strings.Builder{}
 	b.WriteString("Setup\n")
 	b.WriteString("======\n")
@@ -123,32 +119,32 @@ func (m *actionManager) String() string {
 	return b.String()
 }
 
-func (m *actionManager) Apply(ctx context.Context, cfg *actionApplyCfg) error {
-	cfg.test.Helper()
+func (m *actionRunner) Apply(ctx context.Context, store *scenarioStore, actions []Action, failFast bool) error {
+	m.T.Helper()
 	var errs errors.MultiError
-	for _, action := range cfg.actions {
-		cfg.reporter.Writef("Applying '%s' = ", action)
+	for _, action := range actions {
+		m.Reporter.Writef("Applying '%s' = ", action)
 		now := time.Now().UTC()
 
 		var err error
 		if !action.Complete() {
-			_, err = action.Do(ctx, cfg.test, cfg.store)
+			_, err = action.Do(ctx, m.T, store)
 		} else {
-			cfg.reporter.Writeln("[SKIPPED]")
+			m.Reporter.Writeln("[SKIPPED]")
 			continue
 		}
 
 		duration := time.Now().UTC().Sub(now)
 		if err != nil {
-			if cfg.failFast {
-				cfg.reporter.Writef("[FAILED] (%s)\n", duration.String())
+			if failFast {
+				m.Reporter.Writef("[FAILED] (%s)\n", duration.String())
 				return err
 			} else {
-				cfg.reporter.Writef("[FAILED] (%s)\n", duration.String())
+				m.Reporter.Writef("[FAILED] (%s)\n", duration.String())
 				errs = errors.Append(errs, err)
 			}
 		} else {
-			cfg.reporter.Writef("[SUCCESS] (%s)\n", duration.String())
+			m.Reporter.Writef("[SUCCESS] (%s)\n", duration.String())
 		}
 	}
 	return errs

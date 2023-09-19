@@ -19,7 +19,7 @@ import (
 var tstCfg *tst.Config
 
 func TestRepo(t *testing.T) {
-	builder, err := tst.NewGitHubScenario(context.Background(), t, tstCfg)
+	builder, err := tst.NewGitHubScenario(context.Background(), tstCfg, t)
 	if err != nil {
 		fmt.Printf("failed to create scenario: %v", err)
 	}

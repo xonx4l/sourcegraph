@@ -41,7 +41,7 @@ type GitHubScenarioBuilder struct {
 	test     *testing.T
 	client   *GitHubClient
 	store    *scenarioStore
-	actions  *actionManager
+	actions  *actionRunner
 	reporter Reporter
 }
 
@@ -58,7 +58,7 @@ type scenario struct {
 
 var _scenario Scenario = &scenario{}
 
-func NewGitHubScenario(ctx context.Context, t *testing.T, cfg *Config) (*GitHubScenarioBuilder, error) {
+func NewGitHubScenario(ctx context.Context, cfg *Config, t *testing.T) (*GitHubScenarioBuilder, error) {
 	client, err := NewGitHubClient(ctx, *cfg)
 	if err != nil {
 		return nil, err
@@ -67,23 +67,26 @@ func NewGitHubScenario(ctx context.Context, t *testing.T, cfg *Config) (*GitHubS
 	return &GitHubScenarioBuilder{
 		test:     t,
 		client:   client,
-		store:    NewStore(),
-		actions:  NewActionManager(),
+		store:    NewStore(t),
+		actions:  NewActionManager(t),
 		reporter: NoopReporter{},
 	}, nil
 }
 
 func (sb *GitHubScenarioBuilder) T(t *testing.T) *GitHubScenarioBuilder {
 	sb.test = t
+	sb.actions.T = t
 	return sb
 }
 
 func (sb *GitHubScenarioBuilder) Verbose() {
 	sb.reporter = ConsoleReporter{}
+	sb.actions.Reporter = sb.reporter
 }
 
 func (sb *GitHubScenarioBuilder) Quiet() {
 	sb.reporter = NoopReporter{}
+	sb.actions.Reporter = sb.reporter
 }
 
 func (sb *GitHubScenarioBuilder) Org(name string) *GitHubScenarioBuilder {
@@ -156,13 +159,7 @@ func (sb *GitHubScenarioBuilder) Setup(ctx context.Context) (Scenario, func(cont
 	sb.test.Helper()
 	sb.reporter.Writeln("-- Setup --")
 	start := time.Now().UTC()
-	err := sb.actions.Apply(ctx, &actionApplyCfg{
-		test:     sb.test,
-		store:    sb.store,
-		actions:  sb.actions.setup,
-		reporter: sb.reporter,
-		failFast: false,
-	})
+	err := sb.actions.Apply(ctx, sb.store, sb.actions.setup, false)
 	sb.reporter.Writef("Run complete: %s\n", time.Now().UTC().Sub(start))
 	return scenario{}, sb.TearDown, err
 }
@@ -171,13 +168,7 @@ func (sb *GitHubScenarioBuilder) TearDown(ctx context.Context) error {
 	sb.test.Helper()
 	sb.reporter.Writeln("-- Teardown --")
 	start := time.Now().UTC()
-	err := sb.actions.Apply(ctx, &actionApplyCfg{
-		test:     sb.test,
-		store:    sb.store,
-		actions:  reverse(sb.actions.teardown),
-		reporter: sb.reporter,
-		failFast: false,
-	})
+	err := sb.actions.Apply(ctx, sb.store, reverse(sb.actions.teardown), false)
 	sb.reporter.Writef("Run complete: %s\n", time.Now().UTC().Sub(start))
 	return err
 }
