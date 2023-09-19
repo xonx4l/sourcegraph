@@ -27,7 +27,7 @@ func NewGitHubScenarioRepo(name, teamKey string, fork, private bool) *GitHubScen
 	}
 }
 
-func (gr *GitHubScenarioRepo) ForkRepoAction(client *GitHubClient) *action {
+func (gr *GitHubScenarioRepo) ForkRepoAction(client *GitHubClient) Action {
 	return &action{
 		id:   gr.Key(),
 		name: "fork-repo",
@@ -55,7 +55,7 @@ func (gr *GitHubScenarioRepo) ForkRepoAction(client *GitHubClient) *action {
 	}
 }
 
-func (gr *GitHubScenarioRepo) GetRepoAction(client *GitHubClient) *action {
+func (gr *GitHubScenarioRepo) GetRepoAction(client *GitHubClient) Action {
 	return &action{
 		name: fmt.Sprintf("get-repo(%s)", gr.Key()),
 		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
@@ -94,7 +94,7 @@ func (gr *GitHubScenarioRepo) GetRepoAction(client *GitHubClient) *action {
 
 }
 
-func (gr *GitHubScenarioRepo) InitLocalRepoAction(client *GitHubClient) *action {
+func (gr *GitHubScenarioRepo) InitLocalRepoAction(client *GitHubClient) Action {
 	return &action{
 		id:   gr.Key(),
 		name: "init-new-repo",
@@ -132,7 +132,7 @@ func (gr *GitHubScenarioRepo) InitLocalRepoAction(client *GitHubClient) *action 
 	}
 }
 
-func (gr *GitHubScenarioRepo) NewRepoAction(client *GitHubClient) *action {
+func (gr *GitHubScenarioRepo) NewRepoAction(client *GitHubClient) Action {
 	return &action{
 		id:   gr.Key(),
 		name: "create-repo",
@@ -163,7 +163,7 @@ func (gr *GitHubScenarioRepo) NewRepoAction(client *GitHubClient) *action {
 	}
 }
 
-func (gr *GitHubScenarioRepo) SetPermissionsAction(client *GitHubClient) *action {
+func (gr *GitHubScenarioRepo) SetPermissionsAction(client *GitHubClient) Action {
 	return &action{
 		id:   gr.Key(),
 		name: "repo-permissions",
@@ -190,7 +190,7 @@ func (gr *GitHubScenarioRepo) SetPermissionsAction(client *GitHubClient) *action
 	}
 }
 
-func (gr *GitHubScenarioRepo) DeleteRepoAction(client *GitHubClient) *action {
+func (gr *GitHubScenarioRepo) DeleteRepoAction(client *GitHubClient) Action {
 	return &action{
 		id:   gr.Key(),
 		name: "delete-repo",
@@ -215,7 +215,7 @@ func (gr *GitHubScenarioRepo) DeleteRepoAction(client *GitHubClient) *action {
 	}
 }
 
-func (gr *GitHubScenarioRepo) AssignTeamAction(client *GitHubClient) *action {
+func (gr *GitHubScenarioRepo) AssignTeamAction(client *GitHubClient) Action {
 	return &action{
 		id:   gr.Key(),
 		name: "assign-team-" + gr.teamName,

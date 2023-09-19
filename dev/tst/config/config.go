@@ -1,31 +1,31 @@
-package tst
+package config
 
 import (
 	"encoding/json"
 	"os"
 )
 
-type CodeHost struct {
-	Kind     string `json:"Kind"`
-	Token    string `json:"Token"`
+type GitHub struct {
 	Org      string `json:"Org"`
 	URL      string `json:"URL"`
 	User     string `json:"User"`
 	Password string `json:"Password"`
+	Token    string `json:"Token"`
 }
 
 type SourcegraphCfg struct {
-	URL   string `json:"URL"`
-	User  string `json:"User"`
-	Token string `json:"Token"`
+	URL      string `json:"URL"`
+	User     string `json:"User"`
+	Password string `json:"Password"`
+	Token    string `json:"Token"`
 }
 
 type Config struct {
-	CodeHost    CodeHost       `json:"CodeHost"`
+	GitHub      GitHub         `json:"GitHub"`
 	Sourcegraph SourcegraphCfg `json:"Sourcegraph"`
 }
 
-func LoadConfig(filename string) (*Config, error) {
+func FromFile(filename string) (*Config, error) {
 	var c Config
 
 	fd, err := os.Open(filename)

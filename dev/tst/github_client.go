@@ -10,11 +10,12 @@ import (
 	"github.com/google/go-github/v53/github"
 	"golang.org/x/oauth2"
 
+	"github.com/sourcegraph/sourcegraph/dev/tst/config"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
 type GitHubClient struct {
-	cfg *CodeHost
+	cfg *config.GitHub
 	c   *github.Client
 }
 
@@ -206,21 +207,21 @@ func (gh *GitHubClient) updateTeamRepoPermissions(ctx context.Context, org *gith
 	return nil
 }
 
-func NewGitHubClient(ctx context.Context, cfg Config) (*GitHubClient, error) {
+func NewGitHubClient(ctx context.Context, cfg config.GitHub) (*GitHubClient, error) {
 	tc := oauth2.NewClient(ctx, oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: cfg.CodeHost.Token},
+		&oauth2.Token{AccessToken: cfg.Token},
 	))
 
 	tc.Transport.(*oauth2.Transport).Base = http.DefaultTransport
 	tc.Transport.(*oauth2.Transport).Base.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
-	gh, err := github.NewEnterpriseClient(cfg.CodeHost.URL, cfg.CodeHost.URL, tc)
+	gh, err := github.NewEnterpriseClient(cfg.URL, cfg.URL, tc)
 	if err != nil {
 		return nil, err
 	}
 
 	c := GitHubClient{
-		cfg: &cfg.CodeHost,
+		cfg: &cfg,
 		c:   gh,
 	}
 	return &c, nil

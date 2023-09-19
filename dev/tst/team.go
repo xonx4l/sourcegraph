@@ -36,7 +36,7 @@ func (t *GitHubScenarioTeam) Key() string {
 	return t.key
 }
 
-func (gt *GitHubScenarioTeam) CreateTeamAction(client *GitHubClient) *action {
+func (gt *GitHubScenarioTeam) CreateTeamAction(client *GitHubClient) Action {
 	return &action{
 		id:   gt.Key(),
 		name: "get-or-create-team" + gt.name,
@@ -55,7 +55,7 @@ func (gt *GitHubScenarioTeam) CreateTeamAction(client *GitHubClient) *action {
 	}
 }
 
-func (gt *GitHubScenarioTeam) DeleteTeamAction(client *GitHubClient) *action {
+func (gt *GitHubScenarioTeam) DeleteTeamAction(client *GitHubClient) Action {
 	return &action{
 		id:   gt.Key(),
 		name: "delete-team(%s)",
@@ -73,7 +73,7 @@ func (gt *GitHubScenarioTeam) DeleteTeamAction(client *GitHubClient) *action {
 	}
 }
 
-func (gt *GitHubScenarioTeam) AssignTeamAction(client *GitHubClient) *action {
+func (gt *GitHubScenarioTeam) AssignTeamAction(client *GitHubClient) Action {
 	return &action{
 		id:   gt.Key(),
 		name: "assign-team-membership",

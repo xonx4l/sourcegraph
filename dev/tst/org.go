@@ -29,7 +29,7 @@ func (o *GitHubScenarioOrg) Key() string {
 	return o.key
 }
 
-func (g GitHubScenarioOrg) CreateOrgAction(client *GitHubClient) *action {
+func (g GitHubScenarioOrg) CreateOrgAction(client *GitHubClient) Action {
 	return &action{
 		id:   g.Key(),
 		name: "create-org",
@@ -44,7 +44,7 @@ func (g GitHubScenarioOrg) CreateOrgAction(client *GitHubClient) *action {
 	}
 }
 
-func (g GitHubScenarioOrg) UpdateOrgPermissionsAction(client *GitHubClient) *action {
+func (g GitHubScenarioOrg) UpdateOrgPermissionsAction(client *GitHubClient) Action {
 	return &action{
 		id:   g.Key(),
 		name: "update-org-permissions",
@@ -68,7 +68,7 @@ func (g GitHubScenarioOrg) UpdateOrgPermissionsAction(client *GitHubClient) *act
 
 }
 
-func (g GitHubScenarioOrg) DeleteOrgAction(client *GitHubClient) *action {
+func (g GitHubScenarioOrg) DeleteOrgAction(client *GitHubClient) Action {
 	return &action{
 		id:   g.Key(),
 		name: fmt.Sprintf("delete-org(%s)", g.Key()),

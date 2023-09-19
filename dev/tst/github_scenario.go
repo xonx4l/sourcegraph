@@ -6,36 +6,9 @@ import (
 	"time"
 
 	"github.com/google/go-github/v53/github"
+
+	"github.com/sourcegraph/sourcegraph/dev/tst/config"
 )
-
-type ScenarioResource struct {
-	name string
-	id   string
-	key  string
-}
-
-func NewScenarioResource(name string) *ScenarioResource {
-	id := id()
-	key := joinID(name, "-", id, 39)
-	return &ScenarioResource{
-		name: name,
-		id:   id,
-		key:  key,
-	}
-
-}
-
-func (s *ScenarioResource) ID() string {
-	return s.id
-}
-
-func (s *ScenarioResource) Name() string {
-	return s.name
-}
-
-func (s *ScenarioResource) Key() string {
-	return s.key
-}
 
 type GitHubScenarioBuilder struct {
 	test     *testing.T
@@ -45,10 +18,7 @@ type GitHubScenarioBuilder struct {
 	reporter Reporter
 }
 
-type Scenario interface {
-}
-
-type scenario struct {
+type GitHubScenario struct {
 	client *GitHubClient
 	users  []*github.User
 	teams  []*github.Team
@@ -56,10 +26,8 @@ type scenario struct {
 	org    *github.Organization
 }
 
-var _scenario Scenario = &scenario{}
-
-func NewGitHubScenario(ctx context.Context, cfg *Config, t *testing.T) (*GitHubScenarioBuilder, error) {
-	client, err := NewGitHubClient(ctx, *cfg)
+func NewGitHubScenario(ctx context.Context, cfg *config.Config, t *testing.T) (*GitHubScenarioBuilder, error) {
+	client, err := NewGitHubClient(ctx, cfg.GitHub)
 	if err != nil {
 		return nil, err
 	}
@@ -155,13 +123,13 @@ func PrivateRepo(name string, team string, fork bool) *GitHubScenarioRepo {
 	return NewGitHubScenarioRepo(name, team, fork, true)
 }
 
-func (sb *GitHubScenarioBuilder) Setup(ctx context.Context) (Scenario, func(context.Context) error, error) {
+func (sb *GitHubScenarioBuilder) Setup(ctx context.Context) (GitHubScenario, func(context.Context) error, error) {
 	sb.test.Helper()
 	sb.reporter.Writeln("-- Setup --")
 	start := time.Now().UTC()
 	err := sb.actions.Apply(ctx, sb.store, sb.actions.setup, false)
 	sb.reporter.Writef("Run complete: %s\n", time.Now().UTC().Sub(start))
-	return scenario{}, sb.TearDown, err
+	return GitHubScenario{}, sb.TearDown, err
 }
 
 func (sb *GitHubScenarioBuilder) TearDown(ctx context.Context) error {

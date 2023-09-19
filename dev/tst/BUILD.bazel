@@ -1,12 +1,36 @@
+load("//dev:go_defs.bzl", "go_test")
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "tst",
-    srcs = ["core.go"],
+    srcs = [
+        "action.go",
+        "github_client.go",
+        "github_scenario.go",
+        "local_repo.go",
+        "org.go",
+        "repo.go",
+        "reporter.go",
+        "scenario_resource.go",
+        "store.go",
+        "team.go",
+        "users.go",
+        "util.go",
+    ],
     importpath = "github.com/sourcegraph/sourcegraph/dev/tst",
     visibility = ["//visibility:public"],
     deps = [
+        "//dev/tst/config",
         "//lib/errors",
         "@com_github_google_go_github//v53/github",
+        "@com_github_google_uuid//:uuid",
+        "@com_github_sourcegraph_run//:run",
+        "@org_golang_x_oauth2//:oauth2",
     ],
+)
+
+go_test(
+    name = "tst_test",
+    srcs = ["repo_test.go"],
+    embed = [":tst"],
 )

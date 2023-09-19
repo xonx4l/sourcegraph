@@ -45,7 +45,7 @@ var User9 GitHubScenarioUser = *NewGitHubScenarioUser("user9")
 var User10 GitHubScenarioUser = *NewGitHubScenarioUser("user10")
 var Admin GitHubScenarioUser = *NewGitHubScenarioUser("admin")
 
-func preloadUsersAction(client *GitHubClient) *action {
+func preloadUsersAction(client *GitHubClient) Action {
 	return &action{
 		id:   "",
 		name: "internal.preload-users",
@@ -65,7 +65,7 @@ func preloadUsersAction(client *GitHubClient) *action {
 	}
 }
 
-func mapUsersAction(_ *GitHubClient, scenarioUsers []*GitHubScenarioUser) *action {
+func mapUsersAction(_ *GitHubClient, scenarioUsers []*GitHubScenarioUser) Action {
 	return &action{
 		id:   "",
 		name: "internal.map-scenario-users()",
@@ -90,7 +90,7 @@ func userEmail(u *GitHubScenarioUser) string {
 	return "tst-pkg-user@sourcegraph.com"
 }
 
-func (u *GitHubScenarioUser) GetUserAction(client *GitHubClient) *action {
+func (u *GitHubScenarioUser) GetUserAction(client *GitHubClient) Action {
 	name := u.Name()
 	if u.Name() == Admin.Name() {
 		name = client.cfg.User
@@ -110,7 +110,7 @@ func (u *GitHubScenarioUser) GetUserAction(client *GitHubClient) *action {
 	}
 }
 
-func (u *GitHubScenarioUser) CreateUserAction(client *GitHubClient) *action {
+func (u *GitHubScenarioUser) CreateUserAction(client *GitHubClient) Action {
 	return &action{
 		id:   u.Key(),
 		name: "create-user",
@@ -126,7 +126,7 @@ func (u *GitHubScenarioUser) CreateUserAction(client *GitHubClient) *action {
 	}
 }
 
-func (u GitHubScenarioUser) DeleteUserAction(client *GitHubClient) *action {
+func (u GitHubScenarioUser) DeleteUserAction(client *GitHubClient) Action {
 	return &action{
 		id:   u.Key(),
 		name: "delete-user",
