@@ -45,6 +45,9 @@ type EventLogStore interface {
 	// AggregatedSearchEvents calculates SearchAggregatedEvent for each every unique event type related to search.
 	AggregatedSearchEvents(ctx context.Context, now time.Time) ([]types.SearchAggregatedEvent, error)
 
+	// Return all events matching a list of names and a range of time for export.
+	AllEvents(ctx context.Context, eventNames []string, start, end time.Time) (events []types.Event, err error)
+
 	BulkInsert(ctx context.Context, events []*Event) error
 
 	// CodeIntelligenceCrossRepositoryWAUs returns the WAU (current week) with any (precise or search-based) cross-repository code intelligence event.
@@ -1959,3 +1962,68 @@ WHERE e.day >= ` + makeDateTruncExpression("day", "%s::timestamp") + `
 GROUP BY unit, name, time_stamp
 ORDER BY unit, name, time_stamp DESC
 )`
+
+// Return all events matching a list of names and a range of time for export.
+// This should match the query logic at /internal/adminanalytics/utils.go.
+func (l *eventLogStore) AllEvents(ctx context.Context, eventNames []string, start, end time.Time) (events []types.Event, err error) {
+	var sqlEventNames []*sqlf.Query
+	for _, e := range eventNames {
+		sqlEventNames = append(sqlEventNames, sqlf.Sprintf("LOWER(%s)", e))
+	}
+	query := sqlf.Sprintf(allEventsQuery, sqlf.Join(sqlEventNames, ","), start, end)
+
+	rows, err := l.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var e types.Event
+
+		err := rows.Scan(
+			&e.ID,
+			&e.Name,
+			&e.URL,
+			&e.UserID,
+			&e.AnonymousUserID,
+			&e.Client,
+			&e.Source,
+			&e.Timestamp,
+			&e.Argument,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		events = append(events, e)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return events, nil
+}
+
+var allEventsQuery = `
+SELECT
+  id,
+  name,
+  url,
+  user_id,
+  anonymous_user_id,
+  client,
+  source,
+  timestamp,
+  argument
+FROM
+  event_logs
+WHERE
+  LOWER(name) in (%s)
+  AND timestamp > ` + makeDateTruncExpression("day", "%s::timestamp") + `
+  AND timestamp < ` + makeDateTruncExpression("day", "%s::timestamp") + `
+ORDER BY
+  timestamp ASC
+`
