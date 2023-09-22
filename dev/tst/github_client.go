@@ -19,10 +19,10 @@ type GitHubClient struct {
 	c   *github.Client
 }
 
-func (gh *GitHubClient) selectOrg(ctx context.Context) (*github.Organization, error) {
-	org, resp, err := gh.c.Organizations.Get(ctx, "william-templates")
+func (gh *GitHubClient) GetOrg(ctx context.Context, name string) (*github.Organization, error) {
+	org, resp, err := gh.c.Organizations.Get(ctx, name)
 	if resp.StatusCode >= 299 {
-		return nil, errors.Newf("failed to find org: %s", "william-templates")
+		return nil, errors.Newf("failed to find org: %s", name)
 	} else if err != nil {
 		return nil, err
 	}
@@ -84,6 +84,18 @@ func (gh *GitHubClient) deleteUser(ctx context.Context, username string) error {
 	return nil
 }
 
+func (gh *GitHubClient) GetTeam(ctx context.Context, org string, name string) (*github.Team, error) {
+	team, resp, err := gh.c.Teams.GetTeamBySlug(ctx, org, name)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode >= 400 {
+		return nil, errors.Newf("server error[%d]: %v", resp.StatusCode, err)
+	}
+
+	return team, err
+}
+
 func (gh *GitHubClient) getOrCreateTeam(ctx context.Context, org *github.Organization, name string) (*github.Team, error) {
 	team, resp, err := gh.c.Teams.GetTeamBySlug(ctx, org.GetLogin(), name)
 
@@ -109,25 +121,26 @@ func (gh *GitHubClient) deleteTeam(ctx context.Context, org *github.Organization
 	return err
 }
 
-func (gh *GitHubClient) assignTeamMembership(ctx context.Context, org *github.Organization, team *github.Team, users ...*github.User) (*github.Team, error) {
-	for _, u := range users {
-		_, resp, err := gh.c.Teams.GetTeamMembershipByID(ctx, org.GetID(), team.GetID(), u.GetLogin())
-		if resp.StatusCode == 200 {
-			// user is already part of this team
-			return team, nil
-		} else if resp.StatusCode >= 500 {
-			return nil, errors.Newf("server error[%d]: %v", resp.StatusCode, err)
-		}
-
-		_, _, err = gh.c.Teams.AddTeamMembershipByID(ctx, org.GetID(), team.GetID(), u.GetLogin(), &github.TeamAddTeamMembershipOptions{
-			Role: "member",
-		})
-
-		if err != nil {
-			return nil, err
-		}
-
+func (gh *GitHubClient) assignTeamMembership(ctx context.Context, org *github.Organization, team *github.Team, username string) (*github.Team, error) {
+	_, resp, err := gh.c.Teams.GetTeamMembershipByID(ctx, org.GetID(), team.GetID(), username)
+	if err != nil {
+		return nil, err
 	}
+	if resp.StatusCode == 200 {
+		// user is already part of this team
+		return team, nil
+	} else if resp.StatusCode >= 500 {
+		return nil, errors.Newf("server error[%d]: %v", resp.StatusCode, err)
+	}
+
+	_, _, err = gh.c.Teams.AddTeamMembershipByID(ctx, org.GetID(), team.GetID(), username, &github.TeamAddTeamMembershipOptions{
+		Role: "member",
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	return team, nil
 }
 

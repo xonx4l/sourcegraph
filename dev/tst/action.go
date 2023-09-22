@@ -10,6 +10,13 @@ import (
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
+type actionV2 struct {
+	name     string
+	apply    func(context.Context) error
+	teardown func(context.Context) error
+}
+
+// ============================================
 type actionRunner struct {
 	T        *testing.T
 	Reporter Reporter
@@ -70,7 +77,7 @@ func (a *actionResult[T]) Get() any {
 	return a.item
 }
 
-func NewActionManager(t *testing.T) *actionRunner {
+func newActionRunner(t *testing.T) *actionRunner {
 	return &actionRunner{
 		T:        t,
 		setup:    make([]Action, 0),
