@@ -81,33 +81,6 @@ func (s *scenarioStore) GetScenarioUser(u GitHubScenarioUser) (*github.User, err
 	return result, nil
 }
 
-func (s *scenarioStore) SetTeam(gt *GitHubScenarioTeam, t *github.Team) {
-	s.T.Helper()
-	// Store it twice so we have two ways of retrieving a team
-	s.store[gt.Name()] = t
-	s.store[gt.Key()] = t
-}
-
-func (s *scenarioStore) GetTeamByName(name string) (*github.Team, error) {
-	s.T.Helper()
-	var result *github.Team
-	if v, ok := s.store[name]; ok {
-		if t, ok := v.(*github.Team); ok {
-			result = t
-		} else {
-			return result, castFailure
-		}
-	} else {
-		return result, errors.Newf("%s not found - it might not have been loaded yet", name)
-	}
-	return result, nil
-}
-
-func (s *scenarioStore) GetTeam(t *GitHubScenarioTeam) (*github.Team, error) {
-	s.T.Helper()
-	return s.GetTeamByName(t.Name())
-}
-
 func (s *scenarioStore) SetRepo(r *GitHubScenarioRepo, repo *github.Repository) {
 	s.T.Helper()
 	s.store[r.Key()] = repo

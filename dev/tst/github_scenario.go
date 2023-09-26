@@ -36,7 +36,6 @@ func NewGitHubScenario(ctx context.Context, cfg *config.Config, t *testing.T) (*
 		test:     t,
 		client:   client,
 		store:    NewStore(t),
-		actions:  NewActionManager(t),
 		reporter: NoopReporter{},
 	}, nil
 }
@@ -45,11 +44,6 @@ func (sb *GitHubScenarioBuilder) T(t *testing.T) *GitHubScenarioBuilder {
 	sb.test = t
 	sb.actions.T = t
 	return sb
-}
-
-func (sb *GitHubScenarioBuilder) Verbose() {
-	sb.reporter = ConsoleReporter{}
-	sb.actions.Reporter = sb.reporter
 }
 
 func (sb *GitHubScenarioBuilder) Quiet() {
@@ -75,20 +69,6 @@ func (sb *GitHubScenarioBuilder) Users(users ...GitHubScenarioUser) *GitHubScena
 			sb.actions.AddTeardown(u.DeleteUserAction(sb.client))
 		}
 	}
-	return sb
-}
-
-func Team(name string, u ...GitHubScenarioUser) *GitHubScenarioTeam {
-	return NewGitHubScenarioTeam(name, u...)
-}
-
-func (sb *GitHubScenarioBuilder) Teams(teams ...*GitHubScenarioTeam) *GitHubScenarioBuilder {
-	sb.test.Helper()
-	for _, t := range teams {
-		sb.actions.AddSetup(t.CreateTeamAction(sb.client), t.AssignTeamAction(sb.client))
-		sb.actions.AddTeardown(t.DeleteTeamAction(sb.client))
-	}
-
 	return sb
 }
 

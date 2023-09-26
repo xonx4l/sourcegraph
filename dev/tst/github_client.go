@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/google/go-github/v53/github"
 	"golang.org/x/oauth2"
@@ -109,6 +110,7 @@ func (gh *GitHubClient) getOrCreateTeam(ctx context.Context, org *github.Organiz
 			Privacy:     strp("closed"),
 		}
 		team, _, err = gh.c.Teams.CreateTeam(ctx, org.GetLogin(), newTeam)
+		time.Sleep(time.Second)
 	}
 	return team, err
 }
@@ -121,19 +123,8 @@ func (gh *GitHubClient) deleteTeam(ctx context.Context, org *github.Organization
 	return err
 }
 
-func (gh *GitHubClient) assignTeamMembership(ctx context.Context, org *github.Organization, team *github.Team, username string) (*github.Team, error) {
-	_, resp, err := gh.c.Teams.GetTeamMembershipByID(ctx, org.GetID(), team.GetID(), username)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode == 200 {
-		// user is already part of this team
-		return team, nil
-	} else if resp.StatusCode >= 500 {
-		return nil, errors.Newf("server error[%d]: %v", resp.StatusCode, err)
-	}
-
-	_, _, err = gh.c.Teams.AddTeamMembershipByID(ctx, org.GetID(), team.GetID(), username, &github.TeamAddTeamMembershipOptions{
+func (gh *GitHubClient) assignTeamMembership(ctx context.Context, org *github.Organization, team *github.Team, user *github.User) (*github.Team, error) {
+	_, _, err := gh.c.Teams.AddTeamMembershipBySlug(ctx, org.GetLogin(), team.GetSlug(), user.GetLogin(), &github.TeamAddTeamMembershipOptions{
 		Role: "member",
 	})
 
@@ -169,8 +160,8 @@ func (gh *GitHubClient) newRepo(ctx context.Context, org *github.Organization, r
 	return repo, err
 }
 
-func (gh *GitHubClient) forkRepo(ctx context.Context, org *github.Organization, owner, repoName string) error {
-	_, resp, err := gh.c.Repositories.CreateFork(ctx, owner, repoName, &github.RepositoryCreateForkOptions{
+func (gh *GitHubClient) forkRepo(ctx context.Context, org *github.Organization, owner, repoName string) (*github.Repository, error) {
+	repo, resp, err := gh.c.Repositories.CreateFork(ctx, owner, repoName, &github.RepositoryCreateForkOptions{
 		Organization:      org.GetLogin(),
 		Name:              repoName,
 		DefaultBranchOnly: true,

@@ -220,7 +220,7 @@ func (gr *GitHubScenarioRepo) AssignTeamAction(client *GitHubClient) Action {
 		id:   gr.Key(),
 		name: "assign-team-" + gr.teamName,
 		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-			org, err := store.GetOrg()
+			_, err := store.GetOrg()
 			if err != nil {
 				return nil, err
 			}
@@ -230,15 +230,15 @@ func (gr *GitHubScenarioRepo) AssignTeamAction(client *GitHubClient) Action {
 				return nil, err
 			}
 
-			team, err := store.GetTeamByName(gr.teamName)
-			if err != nil {
-				return nil, err
-			}
-
-			err = client.updateTeamRepoPermissions(ctx, org, team, repo)
-			if err != nil {
-				return nil, err
-			}
+			// team, err := store.GetTeamByName(gr.teamName)
+			// if err != nil {
+			// 	return nil, err
+			// }
+			//
+			// err = client.updateTeamRepoPermissions(ctx, org, team, repo)
+			// if err != nil {
+			// 	return nil, err
+			// }
 			store.SetRepo(gr, repo)
 			return &actionResult[bool]{item: true}, nil
 		},
