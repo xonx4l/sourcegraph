@@ -160,8 +160,8 @@ func (gh *GitHubClient) newRepo(ctx context.Context, org *github.Organization, r
 	return repo, err
 }
 
-func (gh *GitHubClient) forkRepo(ctx context.Context, org *github.Organization, owner, repoName string) (*github.Repository, error) {
-	repo, resp, err := gh.c.Repositories.CreateFork(ctx, owner, repoName, &github.RepositoryCreateForkOptions{
+func (gh *GitHubClient) forkRepo(ctx context.Context, org *github.Organization, owner, repoName string) error {
+	_, resp, err := gh.c.Repositories.CreateFork(ctx, owner, repoName, &github.RepositoryCreateForkOptions{
 		Organization:      org.GetLogin(),
 		Name:              repoName,
 		DefaultBranchOnly: true,

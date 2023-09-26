@@ -3,8 +3,12 @@ package tst
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/google/go-github/v53/github"
+
+	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
 type Org struct {
@@ -83,4 +87,102 @@ func (o *Org) CreateTeam(name string) *Teamv2 {
 }
 
 func (o *Org) CreateRepo(name string, public bool) *Repov2 {
+	baseRepo := &Repov2{
+		s:    o.s,
+		org:  o,
+		name: name,
+	}
+	action := &actionV2{
+		name: fmt.Sprintf("repo:create:%s", name),
+		apply: func(ctx context.Context) error {
+			org, err := o.get(ctx)
+			if err != nil {
+				return err
+			}
+
+			var repoName string
+			parts := strings.Split(name, "/")
+			if len(parts) >= 2 {
+				repoName = parts[1]
+			} else {
+				return errors.Newf("incorrect repo format for %q - expecting {owner}/{name}")
+			}
+
+			repo, err := o.s.client.newRepo(ctx, org, repoName, public)
+			if err != nil {
+				return err
+			}
+
+			baseRepo.name = repo.GetFullName()
+			return nil
+		},
+		teardown: func(ctx context.Context) error {
+			org, err := o.get(ctx)
+			if err != nil {
+				return err
+			}
+
+			repo, err := baseRepo.get(ctx)
+			if err != nil {
+				return err
+			}
+
+			return o.s.client.deleteRepo(ctx, org, repo)
+		},
+	}
+	o.s.append(action)
+
+	return baseRepo
+}
+
+func (o *Org) CreateRepoFork(target string) *Repov2 {
+	baseRepo := &Repov2{
+		s:    o.s,
+		org:  o,
+		name: target,
+	}
+	action := &actionV2{
+		name: fmt.Sprintf("repo:fork:%s", target),
+		apply: func(ctx context.Context) error {
+			org, err := o.get(ctx)
+			if err != nil {
+				return err
+			}
+
+			var owner, repoName string
+			parts := strings.Split(target, "/")
+			if len(parts) >= 2 {
+				owner = parts[0]
+				repoName = parts[1]
+			} else {
+				return errors.Newf("incorrect repo format for %q - expecting {owner}/{name}")
+			}
+
+			err = o.s.client.forkRepo(ctx, org, owner, repoName)
+			if err != nil {
+				return err
+			}
+
+			// Wait till fork has synced
+			time.Sleep(1 * time.Second)
+			baseRepo.name = fmt.Sprintf(org.GetLogin(), repoName)
+			return nil
+		},
+		teardown: func(ctx context.Context) error {
+			org, err := o.get(ctx)
+			if err != nil {
+				return err
+			}
+
+			repo, err := baseRepo.get(ctx)
+			if err != nil {
+				return err
+			}
+
+			return o.s.client.deleteRepo(ctx, org, repo)
+		},
+	}
+	o.s.append(action)
+
+	return baseRepo
 }

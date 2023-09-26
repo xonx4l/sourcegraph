@@ -39,6 +39,9 @@ func TestRepo(t *testing.T) {
 	team := org.CreateTeam("team-1")
 	team.AddUser(user)
 
+	publicRepo := org.CreateRepoFork("public-repo")
+	privateRepo := org.CreateRepoFork("private-repo")
+
 	fmt.Println(scenario.Plan())
 
 	fmt.Println()

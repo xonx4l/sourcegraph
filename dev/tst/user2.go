@@ -13,7 +13,7 @@ type User struct {
 }
 
 func (u *User) Get(ctx context.Context) (*github.User, error) {
-	if u.s.isApplied() {
+	if u.s.IsApplied() {
 		return u.get(ctx)
 	}
 	panic("cannot retrieve user before scenario is applied")

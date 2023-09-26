@@ -14,7 +14,7 @@ type Teamv2 struct {
 }
 
 func (team *Teamv2) Get(ctx context.Context) (*github.Team, error) {
-	if team.s.isApplied() {
+	if team.s.IsApplied() {
 		return team.get(ctx)
 	}
 	panic("cannot retrieve org before scenario is applied")
