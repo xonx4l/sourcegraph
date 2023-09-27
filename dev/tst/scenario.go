@@ -98,25 +98,23 @@ func (s *GithubScenarioV2) Apply(ctx context.Context) error {
 
 		var err error
 		if s.appliedActionIdx <= i {
-			s.reporter.Writef("(Setup) Applying '%s' = ", action.name)
+			s.reporter.Writef("(Setup) Applying [%-50s] ", action.name)
 			err = action.apply(ctx)
 			s.appliedActionIdx++
 		} else {
-			s.reporter.Writef("(Setup) Skipping '%s' \n", action.name)
+			s.reporter.Writef("(Setup) Skipping [%-50s]\n", action.name)
 			continue
 		}
 
 		duration := time.Now().UTC().Sub(now)
 		if err != nil {
+			s.reporter.Writef("FAILED (%s)\n", duration.String())
 			if failFast {
-				s.reporter.Writef("[FAILED] (%s)\n", duration.String())
 				return err
-			} else {
-				s.reporter.Writef("[FAILED] (%s)\n", duration.String())
-				errs = errors.Append(errs, err)
 			}
+			errs = errors.Append(errs, err)
 		} else {
-			s.reporter.Writef("[SUCCESS] (%s)\n", duration.String())
+			s.reporter.Writef("SUCCESS (%s)\n", duration.String())
 		}
 	}
 
@@ -137,19 +135,18 @@ func (s *GithubScenarioV2) Teardown(ctx context.Context) error {
 		}
 		now := time.Now().UTC()
 
-		s.reporter.Writef("(Teardown) Applying '%s' = ", action.name)
+		s.reporter.Writef("(Teardown) Applying [%-50s] ", action.name)
 		err := action.teardown(ctx)
 		duration := time.Now().UTC().Sub(now)
 
 		if err != nil {
+			s.reporter.Writef("FAILED (%s)\n", duration.String())
 			if failFast {
-				s.reporter.Writef("[FAILED] (%s)\n", duration.String())
 				return err
 			}
-			s.reporter.Writef("[FAILED] (%s)\n", duration.String())
 			errs = errors.Append(errs, err)
 		} else {
-			s.reporter.Writef("[SUCCESS] (%s)\n", duration.String())
+			s.reporter.Writef("SUCCESS (%s)\n", duration.String())
 		}
 	}
 	s.reporter.Writef("Teardown complete in %s\n", time.Now().UTC().Sub(start))

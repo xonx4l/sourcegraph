@@ -6,8 +6,7 @@ import (
 )
 
 type GitHub struct {
-	Org       string `json:"org"`
-	URL       string `json:"uRL"`
+	URL       string `json:"url"`
 	AdminUser string `json:"adminUser"`
 	Password  string `json:"password"`
 	Token     string `json:"token"`

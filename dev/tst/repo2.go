@@ -3,8 +3,11 @@ package tst
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/go-github/v53/github"
+
+	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
 type Repov2 struct {
@@ -81,6 +84,25 @@ func (r *Repov2) SetPermissions(private bool) {
 				return err
 			}
 			return err
+		},
+	}
+
+	r.s.append(action)
+}
+
+func (r *Repov2) WaitTillExists() {
+	action := &actionV2{
+		name: fmt.Sprintf("repo:exists:%s", r.name),
+		apply: func(ctx context.Context) error {
+			var err error
+			for i := 0; i < 5; i++ {
+				time.Sleep(1 * time.Second)
+				_, err = r.get(ctx)
+				if err == nil {
+					return nil
+				}
+			}
+			return errors.Newf("repo %q did not exist after waiting: %v", r.name, err)
 		},
 	}
 
