@@ -105,7 +105,7 @@ func (gr *GitHubScenarioRepo) InitLocalRepoAction(client *GitHubClient) Action {
 				return nil, err
 			}
 
-			localRepo, err := NewLocalRepo(githubRepo.GetName(), client.cfg.User, client.cfg.Password)
+			localRepo, err := NewLocalRepo(githubRepo.GetName(), client.cfg.AdminUser, client.cfg.Password)
 			if err != nil {
 				return nil, err
 			}

@@ -165,7 +165,7 @@ func (o *Org) CreateRepoFork(target string) *Repov2 {
 
 			// Wait till fork has synced
 			time.Sleep(1 * time.Second)
-			baseRepo.name = fmt.Sprintf(org.GetLogin(), repoName)
+			baseRepo.name = fmt.Sprintf("%s/%s", org.GetLogin(), repoName)
 			return nil
 		},
 		teardown: func(ctx context.Context) error {
@@ -185,4 +185,15 @@ func (o *Org) CreateRepoFork(target string) *Repov2 {
 	o.s.append(action)
 
 	return baseRepo
+}
+
+func (o *Org) waitTillRepoExists(ctx context.Context, repo *Repov2) error {
+	for i := 0; i < 5; i++ {
+		time.Sleep(1 * time.Second)
+		_, err := repo.get(ctx)
+		if err == nil {
+			return nil
+		}
+	}
+	return errors.New("repo did not exist after waiting")
 }

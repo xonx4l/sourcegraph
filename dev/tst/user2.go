@@ -50,3 +50,12 @@ func (s *GithubScenarioV2) CreateUser(name string) *User {
 	s.append(createUser)
 	return baseUser
 }
+
+func (s *GithubScenarioV2) GetAdmin() *User {
+	baseUser := &User{
+		s:    s,
+		name: s.client.cfg.AdminUser,
+	}
+
+	return baseUser
+}

@@ -22,7 +22,7 @@ func (r *Repov2) Get(ctx context.Context) (*github.Repository, error) {
 }
 
 func (r *Repov2) get(ctx context.Context) (*github.Repository, error) {
-	return nil, nil
+	return r.s.client.getRepo(ctx, r.org.name, r.name)
 }
 
 func (r *Repov2) AddTeam(team *Teamv2) {
@@ -76,7 +76,7 @@ func (r *Repov2) SetPermissions(private bool) {
 				return err
 			}
 
-			repo, err = r.s.client.updateRepo(ctx, org, repo)
+			_, err = r.s.client.updateRepo(ctx, org, repo)
 			if err != nil {
 				return err
 			}

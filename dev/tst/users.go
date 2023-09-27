@@ -93,7 +93,7 @@ func userEmail(u *GitHubScenarioUser) string {
 func (u *GitHubScenarioUser) GetUserAction(client *GitHubClient) Action {
 	name := u.Name()
 	if u.Name() == Admin.Name() {
-		name = client.cfg.User
+		name = client.cfg.AdminUser
 	}
 	return &action{
 		id:   u.Key(),

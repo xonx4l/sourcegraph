@@ -35,7 +35,7 @@ func (gh *GitHubClient) createOrg(ctx context.Context, name string) (*github.Org
 		Login: &name,
 	}
 
-	org, resp, err := gh.c.Admin.CreateOrg(ctx, &newOrg, gh.cfg.User)
+	org, resp, err := gh.c.Admin.CreateOrg(ctx, &newOrg, gh.cfg.AdminUser)
 	if resp.StatusCode >= 400 {
 		io.Copy(os.Stdout, resp.Body)
 		return nil, errors.Newf("failed to create org %q - GitHub status code %d: %v", name, resp.StatusCode, err)

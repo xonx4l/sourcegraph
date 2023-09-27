@@ -32,20 +32,23 @@ func TestRepo(t *testing.T) {
 	// 	Repos(tst.PublicRepo("sgtest/go-diff", "public-team", true), tst.PrivateRepo("sgtest/private", "private-team", true))
 	org := scenario.CreateOrg("tst-org")
 	user := scenario.CreateUser("tst-user")
+	admin := scenario.GetAdmin()
 
 	//ctx := context.Background()
 
 	org.AllowPrivateForks()
 	team := org.CreateTeam("team-1")
 	team.AddUser(user)
+	adminTeam := org.CreateTeam("team-admin")
+	adminTeam.AddUser(admin)
 
-	publicRepo := org.CreateRepoFork("public-repo")
-	privateRepo := org.CreateRepoFork("private-repo")
+	publicRepo := org.CreateRepoFork("sgtest/go-diff")
+	publicRepo.AddTeam(team)
+	privateRepo := org.CreateRepoFork("sgtest/private")
+	privateRepo.AddTeam(adminTeam)
 
 	fmt.Println(scenario.Plan())
 
-	fmt.Println()
-	fmt.Printf("Applying scenario")
 	scenario.Verbose()
 	if err := scenario.Apply(context.Background()); err != nil {
 		t.Fatalf("error applying scenario: %v", err)
