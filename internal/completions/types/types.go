@@ -60,6 +60,7 @@ type CompletionRequestParameters struct {
 	TopP              float32   `json:"topP,omitempty"`
 	Model             string    `json:"model,omitempty"`
 	Stream            *bool     `json:"stream,omitempty"`
+	Logprobs          *uint8    `json:"logprobs,omitempty"`
 }
 
 // IsStream returns whether a streaming response is requested. For backwards
@@ -98,8 +99,16 @@ func (p *CompletionRequestParameters) Attrs(feature CompletionsFeature) []attrib
 }
 
 type CompletionResponse struct {
-	Completion string `json:"completion"`
-	StopReason string `json:"stopReason"`
+	Completion string    `json:"completion"`
+	StopReason string    `json:"stopReason"`
+	Logprobs   *Logprobs `json:"logprobs,omitempty"`
+}
+
+type Logprobs struct {
+	Tokens        []string             `json:"tokens"`
+	TokenLogprobs []float32            `json:"token_logprobs"`
+	TopLogprobs   []map[string]float32 `json:"top_logprobs"`
+	TextOffset    []int32              `json:"text_offset"`
 }
 
 type SendCompletionEvent func(event CompletionResponse) error

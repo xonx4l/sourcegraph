@@ -1,6 +1,8 @@
 package fireworks
 
 import (
+	logg "log"
+
 	"bytes"
 	"context"
 	"encoding/json"
@@ -56,6 +58,7 @@ func (c *fireworksClient) Complete(
 	return &types.CompletionResponse{
 		Completion: response.Choices[0].Text,
 		StopReason: response.Choices[0].FinishReason,
+		Logprobs:   response.Choices[0].Logprobs,
 	}, nil
 }
 
@@ -65,7 +68,9 @@ func (c *fireworksClient) Stream(
 	requestParams types.CompletionRequestParameters,
 	sendEvent types.SendCompletionEvent,
 ) error {
-	// logg.Printf("# fireworksClient.Stream")
+	logg.Printf("# fireworksClient.Stream")
+	nlogprobs := uint8(0)
+	requestParams.Logprobs = &nlogprobs
 
 	resp, err := c.makeRequest(ctx, requestParams, true)
 	if err != nil {
@@ -81,6 +86,9 @@ func (c *fireworksClient) Stream(
 		}
 
 		data := dec.Data()
+
+		logg.Printf("# fireworks raw data: %s", string(data))
+
 		// Gracefully skip over any data that isn't JSON-like.
 		if !bytes.HasPrefix(data, []byte("{")) {
 			continue
@@ -96,6 +104,7 @@ func (c *fireworksClient) Stream(
 			ev := types.CompletionResponse{
 				Completion: content,
 				StopReason: event.Choices[0].FinishReason,
+				Logprobs:   event.Choices[0].Logprobs,
 			}
 			err = sendEvent(ev)
 			if err != nil {
@@ -131,6 +140,7 @@ func (c *fireworksClient) makeRequest(ctx context.Context, requestParams types.C
 		Stop:        requestParams.StopSequences,
 		Echo:        false,
 		Prompt:      prompt,
+		Logprobs:    requestParams.Logprobs,
 	}
 
 	reqBody, err := json.Marshal(payload)
@@ -170,26 +180,20 @@ type fireworksRequest struct {
 	Stream      bool     `json:"stream,omitempty"`
 	Echo        bool     `json:"echo,omitempty"`
 	Stop        []string `json:"stop,omitempty"`
+	Logprobs    *uint8   `json:"logprobs,omitempty"`
 }
 
 // response for a non streaming request
 type fireworksResponse struct {
 	Choices []struct {
-		Text         string    `json:"text"`
-		Index        int       `json:"index"`
-		FinishReason string    `json:"finish_reason"`
-		Logprobs     *Logprobs `json:logprobs"`
+		Text         string          `json:"text"`
+		Index        int             `json:"index"`
+		FinishReason string          `json:"finish_reason"`
+		Logprobs     *types.Logprobs `json:logprobs"`
 	} `json:"choices"`
 	Usage struct {
 		PromptTokens     int `json:"prompt_tokens"`
 		TotalTokens      int `json:"total_tokens"`
 		CompletionTokens int `json:"completion_tokens"`
 	} `json:"usage"`
-}
-
-type Logprobs struct {
-	Tokens        []string                 `json:"tokens"`
-	TokenLogprobs []float32                `json:"token_logprobs"`
-	TopLogprobs   []map[string]interface{} `json:"top_logprobs"`
-	TextOffset    []int32                  `json:"text_offset"`
 }
