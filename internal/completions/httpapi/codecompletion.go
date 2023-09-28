@@ -5,7 +5,6 @@ import (
 
 	"github.com/sourcegraph/log"
 
-	"github.com/sourcegraph/sourcegraph/cmd/frontend/envvar"
 	"github.com/sourcegraph/sourcegraph/internal/completions/types"
 	"github.com/sourcegraph/sourcegraph/internal/conf/conftypes"
 	"github.com/sourcegraph/sourcegraph/internal/database"
@@ -23,12 +22,17 @@ func NewCodeCompletionsHandler(logger log.Logger, db database.DB) http.Handler {
 		rl,
 		"code",
 		func(requestParams types.CodyCompletionRequestParameters, c *conftypes.CompletionsConfig) (string, error) {
+			// logg.Printf("### getModel: %q", c.CompletionModel)
+			// logg.Printf("### requestParams.Model: %q", requestParams.Model)
 			if isAllowedCustomModel(requestParams.Model) {
+				// logg.Printf("#### NewCodeCompletionsHandler 1")
 				return requestParams.Model, nil
 			}
 			if requestParams.Model != "" {
+				// logg.Printf("#### NewCodeCompletionsHandler 2")
 				return "", errors.New("Unsupported custom model")
 			}
+			// logg.Printf("#### NewCodeCompletionsHandler 3")
 			return c.CompletionModel, nil
 		},
 	)
@@ -37,9 +41,9 @@ func NewCodeCompletionsHandler(logger log.Logger, db database.DB) http.Handler {
 // We only allow dotcom clients to select a custom code model and maintain an allowlist for which
 // custom values we support
 func isAllowedCustomModel(model string) bool {
-	if !(envvar.SourcegraphDotComMode()) {
-		return false
-	}
+	// if !(envvar.SourcegraphDotComMode()) {
+	// 	return false
+	// }
 
 	switch model {
 	case "fireworks/accounts/fireworks/models/starcoder-16b-w8a16":

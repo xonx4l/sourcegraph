@@ -30,6 +30,8 @@ func (c *fireworksClient) Complete(
 	feature types.CompletionsFeature,
 	requestParams types.CompletionRequestParameters,
 ) (*types.CompletionResponse, error) {
+	// logg.Printf("# fireworksClient.Complete")
+
 	// TODO: If we add support for other features, Cody Gateway must also be updated.
 	if feature != types.CompletionsFeatureCode {
 		return nil, errors.Newf("%q for Fireworks is currently not supported")
@@ -63,6 +65,8 @@ func (c *fireworksClient) Stream(
 	requestParams types.CompletionRequestParameters,
 	sendEvent types.SendCompletionEvent,
 ) error {
+	// logg.Printf("# fireworksClient.Stream")
+
 	resp, err := c.makeRequest(ctx, requestParams, true)
 	if err != nil {
 		return err
@@ -104,6 +108,8 @@ func (c *fireworksClient) Stream(
 }
 
 func (c *fireworksClient) makeRequest(ctx context.Context, requestParams types.CompletionRequestParameters, stream bool) (*http.Response, error) {
+	// logg.Printf("# fireworksClient.makeRequest: %v", c.endpoint)
+
 	if requestParams.TopP < 0 {
 		requestParams.TopP = 0
 	}
@@ -144,6 +150,7 @@ func (c *fireworksClient) makeRequest(ctx context.Context, requestParams types.C
 	if err != nil {
 		return nil, err
 	}
+	// logg.Printf("# resp code: %v", resp.StatusCode)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, types.NewErrStatusNotOK("Fireworks", resp)
@@ -168,13 +175,21 @@ type fireworksRequest struct {
 // response for a non streaming request
 type fireworksResponse struct {
 	Choices []struct {
-		Text         string `json:"text"`
-		Index        int    `json:"index"`
-		FinishReason string `json:"finish_reason"`
+		Text         string    `json:"text"`
+		Index        int       `json:"index"`
+		FinishReason string    `json:"finish_reason"`
+		Logprobs     *Logprobs `json:logprobs"`
 	} `json:"choices"`
 	Usage struct {
 		PromptTokens     int `json:"prompt_tokens"`
 		TotalTokens      int `json:"total_tokens"`
 		CompletionTokens int `json:"completion_tokens"`
 	} `json:"usage"`
+}
+
+type Logprobs struct {
+	Tokens        []string                 `json:"tokens"`
+	TokenLogprobs []float32                `json:"token_logprobs"`
+	TopLogprobs   []map[string]interface{} `json:"top_logprobs"`
+	TextOffset    []int32                  `json:"text_offset"`
 }

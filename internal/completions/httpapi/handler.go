@@ -50,9 +50,11 @@ func newCompletionsHandler(
 		if completionsConfig == nil {
 			http.Error(w, "completions are not configured or disabled", http.StatusInternalServerError)
 		}
+		// logg.Printf("## newCompletionsHandler %+v", completionsConfig)
 
 		var requestParams types.CodyCompletionRequestParameters
 		if err := json.NewDecoder(r.Body).Decode(&requestParams); err != nil {
+			// logg.Printf("## newCompletionsHandler 0 %v", err)
 			http.Error(w, "could not decode request body", http.StatusBadRequest)
 			return
 		}
@@ -61,9 +63,13 @@ func newCompletionsHandler(
 		var err error
 		requestParams.Model, err = getModel(requestParams, completionsConfig)
 		if err != nil {
+			// logg.Printf("## newCompletionsHandler 1 %v, %+v", err, requestParams)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		// DEBUG
+		requestParams.Model = "accounts/fireworks/models/starcoder-7b-w8a16"
 
 		ctx, done := Trace(ctx, traceFamily, requestParams.Model, requestParams.MaxTokensToSample).
 			WithErrorP(&err).
@@ -76,6 +82,7 @@ func newCompletionsHandler(
 			completionsConfig.Provider,
 			completionsConfig.AccessToken,
 		)
+		// logg.Printf("### completionClient: %T", completionClient)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
