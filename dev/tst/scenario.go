@@ -14,53 +14,59 @@ import (
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
+type action struct {
+	name     string
+	apply    func(context.Context) error
+	teardown func(context.Context) error
+}
+
 type Scenario interface {
-	append(a ...*actionV2)
+	append(a ...*action)
 	Plan() string
 	Apply(ctx context.Context) error
 	Teardown(ctx context.Context) error
 }
 
-type GithubScenarioV2 struct {
+type GithubScenario struct {
 	id               string
 	t                *testing.T
 	client           *GitHubClient
-	actions          []*actionV2
+	actions          []*action
 	reporter         Reporter
 	appliedActionIdx int
 }
 
-var _ Scenario = (*GithubScenarioV2)(nil)
+var _ Scenario = (*GithubScenario)(nil)
 
-func NewGithubScenarioV2(ctx context.Context, t *testing.T, cfg config.Config) (*GithubScenarioV2, error) {
+func NewGithubScenarioV2(ctx context.Context, t *testing.T, cfg config.Config) (*GithubScenario, error) {
 	client, err := NewGitHubClient(ctx, cfg.GitHub)
 	if err != nil {
 		return nil, err
 	}
 	uid := []byte(uuid.NewString())
 	id := base64.RawStdEncoding.EncodeToString(uid[:])[:10]
-	return &GithubScenarioV2{
+	return &GithubScenario{
 		id:       id,
 		t:        t,
 		client:   client,
-		actions:  make([]*actionV2, 0),
+		actions:  make([]*action, 0),
 		reporter: NoopReporter{},
 	}, nil
 }
 
-func (s *GithubScenarioV2) Verbose() {
+func (s *GithubScenario) Verbose() {
 	s.reporter = &ConsoleReporter{}
 }
 
-func (s *GithubScenarioV2) Quiet() {
+func (s *GithubScenario) Quiet() {
 	s.reporter = NoopReporter{}
 }
 
-func (s *GithubScenarioV2) append(actions ...*actionV2) {
+func (s *GithubScenario) append(actions ...*action) {
 	s.actions = append(s.actions, actions...)
 }
 
-func (s *GithubScenarioV2) Plan() string {
+func (s *GithubScenario) Plan() string {
 	sb := &strings.Builder{}
 	fmt.Fprintf(sb, "Scenario %q\n", s.id)
 	sb.WriteString("== Setup ==\n")
@@ -77,11 +83,11 @@ func (s *GithubScenarioV2) Plan() string {
 	return sb.String()
 }
 
-func (s *GithubScenarioV2) IsApplied() bool {
+func (s *GithubScenario) IsApplied() bool {
 	return s.appliedActionIdx >= len(s.actions)
 }
 
-func (s *GithubScenarioV2) Apply(ctx context.Context) error {
+func (s *GithubScenario) Apply(ctx context.Context) error {
 	s.t.Helper()
 	s.t.Cleanup(func() { s.Teardown(ctx) })
 	var errs errors.MultiError
@@ -122,7 +128,7 @@ func (s *GithubScenarioV2) Apply(ctx context.Context) error {
 	return errs
 }
 
-func (s *GithubScenarioV2) Teardown(ctx context.Context) error {
+func (s *GithubScenario) Teardown(ctx context.Context) error {
 	s.t.Helper()
 	var errs errors.MultiError
 	teardown := reverse(s.actions)
@@ -153,17 +159,17 @@ func (s *GithubScenarioV2) Teardown(ctx context.Context) error {
 	return errs
 }
 
-func (s *GithubScenarioV2) CreateOrg(name string) *Org {
+func (s *GithubScenario) CreateOrg(name string) *Org {
 	baseOrg := &Org{
 		s:    s,
 		name: name,
 	}
 
-	createOrg := &actionV2{
+	createOrg := &action{
 		name: "org:create:" + name,
 		apply: func(ctx context.Context) error {
 			orgName := fmt.Sprintf("org-%s-%s", name, s.id)
-			org, err := s.client.createOrg(ctx, orgName)
+			org, err := s.client.CreateOrg(ctx, orgName)
 			if err != nil {
 				return err
 			}

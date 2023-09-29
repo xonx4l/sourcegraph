@@ -8,7 +8,7 @@ import (
 )
 
 type User struct {
-	s    *GithubScenarioV2
+	s    *GithubScenario
 	name string
 }
 
@@ -20,21 +20,21 @@ func (u *User) Get(ctx context.Context) (*github.User, error) {
 }
 
 func (u *User) get(ctx context.Context) (*github.User, error) {
-	return u.s.client.getUser(ctx, u.name)
+	return u.s.client.GetUser(ctx, u.name)
 }
 
-func (s *GithubScenarioV2) CreateUser(name string) *User {
+func (s *GithubScenario) CreateUser(name string) *User {
 	baseUser := &User{
 		s:    s,
 		name: name,
 	}
 
-	createUser := &actionV2{
+	createUser := &action{
 		name: "user:create:" + name,
 		apply: func(ctx context.Context) error {
 			name := fmt.Sprintf("user-%s-%s", name, s.id)
 			email := "test-user-e2e@sourcegraph.com"
-			user, err := s.client.createUser(ctx, name, email)
+			user, err := s.client.CreateUser(ctx, name, email)
 			if err != nil {
 				return err
 			}
@@ -43,7 +43,7 @@ func (s *GithubScenarioV2) CreateUser(name string) *User {
 			return nil
 		},
 		teardown: func(ctx context.Context) error {
-			return s.client.deleteUser(ctx, baseUser.name)
+			return s.client.DeleteUser(ctx, baseUser.name)
 		},
 	}
 
@@ -51,7 +51,7 @@ func (s *GithubScenarioV2) CreateUser(name string) *User {
 	return baseUser
 }
 
-func (s *GithubScenarioV2) GetAdmin() *User {
+func (s *GithubScenario) GetAdmin() *User {
 	baseUser := &User{
 		s:    s,
 		name: s.client.cfg.AdminUser,

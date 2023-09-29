@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/google/go-github/v53/github"
 	"golang.org/x/oauth2"
@@ -30,7 +29,7 @@ func (gh *GitHubClient) GetOrg(ctx context.Context, name string) (*github.Organi
 	return org, err
 }
 
-func (gh *GitHubClient) createOrg(ctx context.Context, name string) (*github.Organization, error) {
+func (gh *GitHubClient) CreateOrg(ctx context.Context, name string) (*github.Organization, error) {
 	newOrg := github.Organization{
 		Login: &name,
 	}
@@ -52,15 +51,7 @@ func (gh *GitHubClient) UpdateOrg(ctx context.Context, org *github.Organization)
 	return org, err
 }
 
-func (gh *GitHubClient) orgUsers(ctx context.Context, org *github.Organization) ([]*github.User, error) {
-	users, _, err := gh.c.Organizations.ListMembers(ctx, org.GetLogin(), &github.ListMembersOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return users, nil
-}
-
-func (gh *GitHubClient) createUser(ctx context.Context, name, email string) (*github.User, error) {
+func (gh *GitHubClient) CreateUser(ctx context.Context, name, email string) (*github.User, error) {
 	user, resp, err := gh.c.Admin.CreateUser(ctx, name, email)
 	if resp.StatusCode >= 400 {
 		return nil, errors.Newf("failed to create user %q - GitHub status code %d: %v", name, resp.StatusCode, err)
@@ -68,7 +59,7 @@ func (gh *GitHubClient) createUser(ctx context.Context, name, email string) (*gi
 	return user, nil
 }
 
-func (gh *GitHubClient) getUser(ctx context.Context, name string) (*github.User, error) {
+func (gh *GitHubClient) GetUser(ctx context.Context, name string) (*github.User, error) {
 	user, resp, err := gh.c.Users.Get(ctx, name)
 	if resp.StatusCode >= 400 {
 		return nil, errors.Newf("failed to get user %q - GitHub status code %d: %v", name, resp.StatusCode, err)
@@ -76,7 +67,7 @@ func (gh *GitHubClient) getUser(ctx context.Context, name string) (*github.User,
 	return user, nil
 }
 
-func (gh *GitHubClient) deleteUser(ctx context.Context, username string) error {
+func (gh *GitHubClient) DeleteUser(ctx context.Context, username string) error {
 	resp, err := gh.c.Admin.DeleteUser(ctx, username)
 	if resp.StatusCode >= 400 {
 		return errors.Newf("failed to delete user %q - GitHub status code %d: %v", username, resp.StatusCode, err)
@@ -97,25 +88,17 @@ func (gh *GitHubClient) GetTeam(ctx context.Context, org string, name string) (*
 	return team, err
 }
 
-func (gh *GitHubClient) getOrCreateTeam(ctx context.Context, org *github.Organization, name string) (*github.Team, error) {
-	team, resp, err := gh.c.Teams.GetTeamBySlug(ctx, org.GetLogin(), name)
-
-	switch resp.StatusCode {
-	case 200:
-		return team, nil
-	case 404:
-		newTeam := github.NewTeam{
-			Name:        name,
-			Description: strp("auto created team"),
-			Privacy:     strp("closed"),
-		}
-		team, _, err = gh.c.Teams.CreateTeam(ctx, org.GetLogin(), newTeam)
-		time.Sleep(time.Second)
+func (gh *GitHubClient) CreateTeam(ctx context.Context, org *github.Organization, name string) (*github.Team, error) {
+	newTeam := github.NewTeam{
+		Name:        name,
+		Description: strp("auto created team"),
+		Privacy:     strp("closed"),
 	}
+	team, _, err := gh.c.Teams.CreateTeam(ctx, org.GetLogin(), newTeam)
 	return team, err
 }
 
-func (gh *GitHubClient) deleteTeam(ctx context.Context, org *github.Organization, name string) error {
+func (gh *GitHubClient) DeleteTeam(ctx context.Context, org *github.Organization, name string) error {
 	resp, err := gh.c.Teams.DeleteTeamBySlug(ctx, org.GetLogin(), name)
 	if resp.StatusCode >= 400 {
 		return errors.Newf("failed to delete team %q - GitHub status code %d: %v", name, resp.StatusCode, err)
@@ -123,7 +106,7 @@ func (gh *GitHubClient) deleteTeam(ctx context.Context, org *github.Organization
 	return err
 }
 
-func (gh *GitHubClient) assignTeamMembership(ctx context.Context, org *github.Organization, team *github.Team, user *github.User) (*github.Team, error) {
+func (gh *GitHubClient) AssignTeamMembership(ctx context.Context, org *github.Organization, team *github.Team, user *github.User) (*github.Team, error) {
 	_, _, err := gh.c.Teams.AddTeamMembershipBySlug(ctx, org.GetLogin(), team.GetSlug(), user.GetLogin(), &github.TeamAddTeamMembershipOptions{
 		Role: "member",
 	})
@@ -135,7 +118,7 @@ func (gh *GitHubClient) assignTeamMembership(ctx context.Context, org *github.Or
 	return team, nil
 }
 
-func (gh *GitHubClient) getRepo(ctx context.Context, owner, repoName string) (*github.Repository, error) {
+func (gh *GitHubClient) GetRepo(ctx context.Context, owner, repoName string) (*github.Repository, error) {
 	repo, resp, err := gh.c.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
 		return nil, err
@@ -147,7 +130,7 @@ func (gh *GitHubClient) getRepo(ctx context.Context, owner, repoName string) (*g
 	return repo, nil
 }
 
-func (gh *GitHubClient) newRepo(ctx context.Context, org *github.Organization, repoName string, private bool) (*github.Repository, error) {
+func (gh *GitHubClient) CreateRepo(ctx context.Context, org *github.Organization, repoName string, private bool) (*github.Repository, error) {
 	repo, resp, err := gh.c.Repositories.Create(ctx, org.GetLogin(), &github.Repository{
 		Name:    &repoName,
 		Private: &private,
@@ -160,7 +143,7 @@ func (gh *GitHubClient) newRepo(ctx context.Context, org *github.Organization, r
 	return repo, err
 }
 
-func (gh *GitHubClient) forkRepo(ctx context.Context, org *github.Organization, owner, repoName string) error {
+func (gh *GitHubClient) ForkRepo(ctx context.Context, org *github.Organization, owner, repoName string) error {
 	_, resp, err := gh.c.Repositories.CreateFork(ctx, owner, repoName, &github.RepositoryCreateForkOptions{
 		Organization:      org.GetLogin(),
 		Name:              repoName,
@@ -175,7 +158,7 @@ func (gh *GitHubClient) forkRepo(ctx context.Context, org *github.Organization, 
 	return nil
 }
 
-func (gh *GitHubClient) updateRepo(ctx context.Context, org *github.Organization, repo *github.Repository) (*github.Repository, error) {
+func (gh *GitHubClient) UpdateRepo(ctx context.Context, org *github.Organization, repo *github.Repository) (*github.Repository, error) {
 	result, resp, err := gh.c.Repositories.Edit(ctx, org.GetLogin(), repo.GetName(), repo)
 
 	if resp.StatusCode >= 400 {
@@ -189,7 +172,7 @@ func (gh *GitHubClient) updateRepo(ctx context.Context, org *github.Organization
 	return result, nil
 }
 
-func (gh *GitHubClient) deleteRepo(ctx context.Context, org *github.Organization, repo *github.Repository) error {
+func (gh *GitHubClient) DeleteRepo(ctx context.Context, org *github.Organization, repo *github.Repository) error {
 	resp, err := gh.c.Repositories.Delete(ctx, org.GetLogin(), repo.GetName())
 
 	if resp.StatusCode >= 400 {
@@ -203,7 +186,7 @@ func (gh *GitHubClient) deleteRepo(ctx context.Context, org *github.Organization
 	return nil
 }
 
-func (gh *GitHubClient) updateTeamRepoPermissions(ctx context.Context, org *github.Organization, team *github.Team, repo *github.Repository) error {
+func (gh *GitHubClient) UpdateTeamRepoPermissions(ctx context.Context, org *github.Organization, team *github.Team, repo *github.Repository) error {
 	resp, err := gh.c.Teams.AddTeamRepoByID(ctx, org.GetID(), team.GetID(), org.GetLogin(), repo.GetName(), &github.TeamAddTeamRepoOptions{})
 	if resp.StatusCode != 204 {
 		return errors.Newf("failed to update repo %q permissions for team %q: %v", repo.GetName(), team.GetSlug(), err)

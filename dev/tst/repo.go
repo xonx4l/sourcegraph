@@ -3,7 +3,6 @@ package tst
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/go-github/v53/github"
@@ -11,236 +10,101 @@ import (
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
-type GitHubScenarioRepo struct {
-	ScenarioResource
-	teamName string
-	fork     bool
-	private  bool
+type Repo struct {
+	s    *GithubScenario
+	team *Team
+	org  *Org
+	name string
 }
 
-func NewGitHubScenarioRepo(name, teamKey string, fork, private bool) *GitHubScenarioRepo {
-	return &GitHubScenarioRepo{
-		ScenarioResource: *NewScenarioResource(name),
-		teamName:         teamKey,
-		fork:             fork,
-		private:          private,
+func (r *Repo) Get(ctx context.Context) (*github.Repository, error) {
+	if r.s.IsApplied() {
+		return r.get(ctx)
 	}
+	panic("cannot retrieve repo before scenario is applied")
 }
 
-func (gr *GitHubScenarioRepo) ForkRepoAction(client *GitHubClient) Action {
-	return &action{
-		id:   gr.Key(),
-		name: "fork-repo",
-		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-			org, err := store.GetOrg()
+func (r *Repo) get(ctx context.Context) (*github.Repository, error) {
+	return r.s.client.GetRepo(ctx, r.org.name, r.name)
+}
+
+func (r *Repo) AddTeam(team *Team) {
+	r.team = team
+	action := &action{
+		name: fmt.Sprintf("repo:team:%s:membership:%s", team.name, r.name),
+		apply: func(ctx context.Context) error {
+			org, err := r.org.get(ctx)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
-			var owner, repoName string
-			parts := strings.Split(gr.name, "/")
-			if len(parts) >= 2 {
-				owner = parts[0]
-				repoName = parts[1]
-			} else {
-				return nil, errors.Newf("incorrect repo format for %q - expecting {owner}/{name}")
+			repo, err := r.get(ctx)
+			if err != nil {
+				return err
 			}
 
-			err = client.forkRepo(ctx, org, owner, repoName)
+			team, err := r.team.get(ctx)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			return &actionResult[bool]{item: true}, nil
+
+			err = r.s.client.UpdateTeamRepoPermissions(ctx, org, team, repo)
+			if err != nil {
+				return err
+			}
+			return nil
 		},
+		teardown: nil,
 	}
+
+	r.s.append(action)
 }
 
-func (gr *GitHubScenarioRepo) GetRepoAction(client *GitHubClient) Action {
-	return &action{
-		name: fmt.Sprintf("get-repo(%s)", gr.Key()),
-		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-			// Wait till fork has synced
-			time.Sleep(1 * time.Second)
-			org, err := store.GetOrg()
+func (r *Repo) SetPermissions(private bool) {
+	permissionKey := "private"
+	if !private {
+		permissionKey = "public"
+	}
+	action := &action{
+		name: fmt.Sprintf("repo:permissions:%s:%s", r.name, permissionKey),
+		apply: func(ctx context.Context) error {
+			repo, err := r.get(ctx)
 			if err != nil {
-				return nil, err
+				return err
+			}
+			repo.Private = &private
+
+			org, err := r.org.get(ctx)
+			if err != nil {
+				return err
 			}
 
-			var repoName string
-			parts := strings.Split(gr.name, "/")
-			if len(parts) >= 2 {
-				repoName = parts[1]
-			} else {
-				repoName = parts[0]
-			}
-			if gr.fork && repoName == "" {
-				return nil, errors.Newf("incorrect repo format for %q - expecting {owner}/{name}")
-			}
-
-			repo, err := client.getRepo(ctx, org.GetLogin(), repoName)
+			_, err = r.s.client.UpdateRepo(ctx, org, repo)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			// Since this is a forked repo we need to update the GitHubScenarioRepo
-			// We only edit the name but the id stays the same because the initial name
-			// is "someorg/repo" and the name should reflect the name with the current org
-			// "currentOrg/repo"
-			// TODO: this is nasty - find a better way
-			gr.name = repo.GetFullName()
-			store.SetRepo(gr, repo)
-			return &actionResult[bool]{item: true}, nil
+			return err
 		},
 	}
 
+	r.s.append(action)
 }
 
-func (gr *GitHubScenarioRepo) InitLocalRepoAction(client *GitHubClient) Action {
-	return &action{
-		id:   gr.Key(),
-		name: "init-new-repo",
-		// this should ideally be two actions but we need a nice way to share the directory location between the two actions
-		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-			githubRepo, err := store.GetRepo(gr)
-			if err != nil {
-				return nil, err
+func (r *Repo) WaitTillExists() {
+	action := &action{
+		name: fmt.Sprintf("repo:exists:%s", r.name),
+		apply: func(ctx context.Context) error {
+			var err error
+			for i := 0; i < 5; i++ {
+				time.Sleep(1 * time.Second)
+				_, err = r.get(ctx)
+				if err == nil {
+					return nil
+				}
 			}
-
-			localRepo, err := NewLocalRepo(githubRepo.GetName(), client.cfg.AdminUser, client.cfg.Password)
-			if err != nil {
-				return nil, err
-			}
-
-			err = localRepo.Init(ctx)
-			if err != nil {
-				return nil, err
-			}
-
-			err = localRepo.AddRemote(ctx, githubRepo.GetGitURL())
-			if err != nil {
-				return nil, err
-			}
-
-			err = localRepo.PushRemote(ctx, 5)
-			if err != nil {
-				return nil, err
-			}
-
-			localRepo.Cleanup()
-
-			return &actionResult[LocalRepo]{item: *localRepo}, nil
+			return errors.Newf("repo %q did not exist after waiting: %v", r.name, err)
 		},
 	}
-}
 
-func (gr *GitHubScenarioRepo) NewRepoAction(client *GitHubClient) Action {
-	return &action{
-		id:   gr.Key(),
-		name: "create-repo",
-		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-			org, err := store.GetOrg()
-			if err != nil {
-				return nil, err
-			}
-
-			var repoName string
-			parts := strings.Split(gr.name, "/")
-			if len(parts) >= 2 {
-				repoName = parts[1]
-			} else {
-				repoName = parts[0]
-			}
-
-			repo, err := client.newRepo(ctx, org, repoName, gr.private)
-			if err != nil {
-				return nil, err
-			}
-
-			gr.name = repo.GetFullName()
-			store.SetRepo(gr, repo)
-
-			return &actionResult[bool]{item: true}, nil
-		},
-	}
-}
-
-func (gr *GitHubScenarioRepo) SetPermissionsAction(client *GitHubClient) Action {
-	return &action{
-		id:   gr.Key(),
-		name: "repo-permissions",
-		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-			repo, err := store.GetRepo(gr)
-			if err != nil {
-				return nil, err
-			}
-
-			repo.Private = &gr.private
-
-			org, err := store.GetOrg()
-			if err != nil {
-				return nil, err
-			}
-
-			repo, err = client.updateRepo(ctx, org, repo)
-			if err != nil {
-				return nil, err
-			}
-			store.SetRepo(gr, repo)
-			return &actionResult[*github.Repository]{item: repo}, nil
-		},
-	}
-}
-
-func (gr *GitHubScenarioRepo) DeleteRepoAction(client *GitHubClient) Action {
-	return &action{
-		id:   gr.Key(),
-		name: "delete-repo",
-		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-			repo, err := store.GetRepo(gr)
-			if err != nil {
-				return nil, err
-			}
-
-			org, err := store.GetOrg()
-			if err != nil {
-				return nil, err
-			}
-
-			err = client.deleteRepo(ctx, org, repo)
-			if err != nil {
-				return nil, err
-			}
-			store.SetRepo(gr, repo)
-			return &actionResult[bool]{item: true}, nil
-		},
-	}
-}
-
-func (gr *GitHubScenarioRepo) AssignTeamAction(client *GitHubClient) Action {
-	return &action{
-		id:   gr.Key(),
-		name: "assign-team-" + gr.teamName,
-		fn: func(ctx context.Context, store *scenarioStore) (ActionResult, error) {
-			_, err := store.GetOrg()
-			if err != nil {
-				return nil, err
-			}
-
-			repo, err := store.GetRepo(gr)
-			if err != nil {
-				return nil, err
-			}
-
-			// team, err := store.GetTeamByName(gr.teamName)
-			// if err != nil {
-			// 	return nil, err
-			// }
-			//
-			// err = client.updateTeamRepoPermissions(ctx, org, team, repo)
-			// if err != nil {
-			// 	return nil, err
-			// }
-			store.SetRepo(gr, repo)
-			return &actionResult[bool]{item: true}, nil
-		},
-	}
+	r.s.append(action)
 }

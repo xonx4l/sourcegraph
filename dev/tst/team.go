@@ -7,25 +7,25 @@ import (
 	"github.com/google/go-github/v53/github"
 )
 
-type Teamv2 struct {
-	s    *GithubScenarioV2
+type Team struct {
+	s    *GithubScenario
 	org  *Org
 	name string
 }
 
-func (team *Teamv2) Get(ctx context.Context) (*github.Team, error) {
+func (team *Team) Get(ctx context.Context) (*github.Team, error) {
 	if team.s.IsApplied() {
 		return team.get(ctx)
 	}
 	panic("cannot retrieve org before scenario is applied")
 }
 
-func (team *Teamv2) get(ctx context.Context) (*github.Team, error) {
+func (team *Team) get(ctx context.Context) (*github.Team, error) {
 	return team.s.client.GetTeam(ctx, team.org.name, team.name)
 }
 
-func (tm *Teamv2) AddUser(u *User) {
-	assignTeamMembership := &actionV2{
+func (tm *Team) AddUser(u *User) {
+	assignTeamMembership := &action{
 		name: fmt.Sprintf("team:membership:%s:%s", tm.name, u.name),
 		apply: func(ctx context.Context) error {
 			org, err := tm.org.get(ctx)
@@ -40,7 +40,7 @@ func (tm *Teamv2) AddUser(u *User) {
 			if err != nil {
 				return err
 			}
-			_, err = tm.s.client.assignTeamMembership(ctx, org, team, user)
+			_, err = tm.s.client.AssignTeamMembership(ctx, org, team, user)
 			return err
 		},
 		teardown: nil,
