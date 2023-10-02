@@ -15,7 +15,7 @@ const config = {
      * Our main entry JavaScript bundles, contains core logic that is loaded on every page.
      */
     {
-      path: path.join(STATIC_ASSETS_PATH, 'scripts/app.*.bundle.js.br'),
+      path: path.join(STATIC_ASSETS_PATH, 'scripts/main.js.br'),
       /**
        * Note: Temporary increase from 400kb.
        * Primary cause is due to multiple ongoing migrations that mean we are duplicating similar dependencies.
@@ -25,17 +25,17 @@ const config = {
       compression: 'none',
     },
     {
-      path: path.join(STATIC_ASSETS_PATH, 'scripts/embed.*.bundle.js.br'),
+      path: path.join(STATIC_ASSETS_PATH, 'scripts/embed.js.br'),
       maxSize: '155kb',
       compression: 'none',
     },
     {
-      path: path.join(STATIC_ASSETS_PATH, 'scripts/react.*.bundle.js.br'),
+      path: path.join(STATIC_ASSETS_PATH, 'scripts/react.js.br'),
       maxSize: '45kb',
       compression: 'none',
     },
     {
-      path: path.join(STATIC_ASSETS_PATH, 'scripts/opentelemetry.*.bundle.js.br'),
+      path: path.join(STATIC_ASSETS_PATH, 'scripts/opentelemetry.js.br'),
       maxSize: '40kb',
       compression: 'none',
     },
