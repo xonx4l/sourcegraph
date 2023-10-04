@@ -28,7 +28,6 @@ go_library(
         "//cmd/gitserver/internal/common",
         "//cmd/gitserver/internal/executil",
         "//cmd/gitserver/internal/gitserverfs",
-        "//cmd/gitserver/internal/perforce",
         "//cmd/gitserver/internal/sshagent",
         "//cmd/gitserver/internal/urlredactor",
         "//cmd/gitserver/internal/vcssyncer",
@@ -95,6 +94,7 @@ go_test(
         "server_test.go",
         "serverutil_test.go",
     ],
+    data = glob(["testdata/**"]),
     embed = [":internal"],
     # This test loads coursier as a side effect, so we ensure the
     # path is sandboxed properly.
@@ -107,7 +107,6 @@ go_test(
         "//cmd/gitserver/internal/common",
         "//cmd/gitserver/internal/executil",
         "//cmd/gitserver/internal/gitserverfs",
-        "//cmd/gitserver/internal/perforce",
         "//cmd/gitserver/internal/vcssyncer",
         "//internal/actor",
         "//internal/api",

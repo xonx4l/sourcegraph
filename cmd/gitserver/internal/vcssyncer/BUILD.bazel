@@ -24,7 +24,6 @@ go_library(
         "//cmd/gitserver/internal/common",
         "//cmd/gitserver/internal/executil",
         "//cmd/gitserver/internal/gitserverfs",
-        "//cmd/gitserver/internal/perforce",
         "//cmd/gitserver/internal/urlredactor",
         "//internal/api",
         "//internal/codeintel/dependencies",
