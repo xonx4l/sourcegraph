@@ -7,9 +7,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/sourcegraph/sourcegraph/internal/conf"
-	"github.com/sourcegraph/sourcegraph/schema"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/sourcegraph/sourcegraph/internal/conf"
+	"github.com/sourcegraph/sourcegraph/internal/vcs"
+	"github.com/sourcegraph/sourcegraph/schema"
 )
 
 // head will return the first n lines of data.
@@ -67,6 +70,8 @@ baz
 }
 
 func TestConfigureRemoteGitCommand(t *testing.T) {
+	remoteURL, err := vcs.ParseURL("https://user:pass@example.com/repo.git")
+	require.NoError(t, err)
 	expectedEnv := []string{
 		"GIT_ASKPASS=true",
 		"GIT_SSH_COMMAND=ssh -o BatchMode=yes -o ConnectTimeout=30",
@@ -89,11 +94,11 @@ func TestConfigureRemoteGitCommand(t *testing.T) {
 			expectedArgs: []string{"git", "-c", "credential.helper=", "-c", "protocol.version=2", "fetch"},
 		},
 		{
-			input:       exec.Command("git", "ls-remote"),
-			expectedEnv: expectedEnv,
+			input:       exec.Command("git", "ls-remote", remoteURL.String()),
+			expectedEnv: append(expectedEnv, "GIT_SG_PASSWORD=pass"),
 
 			// Don't use protocol.version=2 for ls-remote because it hurts perf.
-			expectedArgs: []string{"git", "-c", "credential.helper=", "ls-remote"},
+			expectedArgs: []string{"git", "-c", `credential.helper=!f() { echo "password=$GIT_SG_PASSWORD"; }; f`, "ls-remote", "https://user@example.com/repo.git"},
 		},
 
 		// tlsConfig tests
@@ -130,7 +135,7 @@ func TestConfigureRemoteGitCommand(t *testing.T) {
 			if config == nil {
 				config = &tlsConfig{}
 			}
-			configureRemoteGitCommand(test.input, config)
+			configureRemoteGitCommand(test.input, config, remoteURL)
 			assert.Equal(t, test.expectedEnv, test.input.Env)
 			assert.Equal(t, test.expectedArgs, test.input.Args)
 		})
@@ -138,15 +143,18 @@ func TestConfigureRemoteGitCommand(t *testing.T) {
 }
 
 func TestConfigureRemoteP4FusionCommandWithoutCArgs(t *testing.T) {
+	remoteURL, err := vcs.ParseURL("https://user:pass@example.com/repo.git")
+	require.NoError(t, err)
 	expectedEnv := []string{
 		"GIT_ASKPASS=true",
 		"GIT_SSH_COMMAND=ssh -o BatchMode=yes -o ConnectTimeout=30",
 		"GIT_HTTP_USER_AGENT=git/Sourcegraph-Bot",
 	}
-	input := exec.Command("p4-fusion", "--path", "some_path", "--client", "some_client", "--user", "some_user")
-	expectedArgs := []string{"p4-fusion", "--path", "some_path", "--client", "some_client", "--user", "some_user"}
+	input := exec.Command("p4-fusion", "--path", "some_path", "--client", "some_client", "--user", "some_user", remoteURL.String())
+	// Note: No redaction for perforce, no credential helper.
+	expectedArgs := []string{"p4-fusion", "--path", "some_path", "--client", "some_client", "--user", "some_user", "https://user:pass@example.com/repo.git"}
 
-	configureRemoteGitCommand(input, &tlsConfig{})
+	configureRemoteGitCommand(input, &tlsConfig{}, remoteURL)
 	assert.Equal(t, expectedEnv, input.Env)
 	assert.Equal(t, expectedArgs, input.Args)
 }
@@ -203,6 +211,8 @@ func TestRemoveUnsupportedP4Args(t *testing.T) {
 }
 
 func TestConfigureRemoteGitCommand_tls(t *testing.T) {
+	remoteURL, err := vcs.ParseURL("https://user:pass@example.com/repo.git")
+	require.NoError(t, err)
 	baseEnv := []string{
 		"GIT_ASKPASS=true",
 		"GIT_SSH_COMMAND=ssh -o BatchMode=yes -o ConnectTimeout=30",
@@ -225,7 +235,7 @@ func TestConfigureRemoteGitCommand_tls(t *testing.T) {
 	}}
 	for _, tc := range cases {
 		cmd := exec.Command("git", "clone")
-		configureRemoteGitCommand(cmd, tc.conf)
+		configureRemoteGitCommand(cmd, tc.conf, remoteURL)
 		want := append(baseEnv, tc.want...)
 		assert.Equal(t, want, cmd.Env)
 	}

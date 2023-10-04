@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -17,6 +18,7 @@ import (
 	"github.com/sourcegraph/sourcegraph/cmd/gitserver/server/internal/cacert"
 	"github.com/sourcegraph/sourcegraph/internal/conf"
 	"github.com/sourcegraph/sourcegraph/internal/trace" //nolint:staticcheck // OT is deprecated
+	"github.com/sourcegraph/sourcegraph/internal/vcs"
 	"github.com/sourcegraph/sourcegraph/internal/wrexec"
 )
 
@@ -82,14 +84,14 @@ func runCommandCombinedOutput(ctx context.Context, cmd wrexec.Cmder) ([]byte, er
 
 // runRemoteGitCommand runs the command after applying the remote options. If
 // progress is not nil, all output is written to it in a separate goroutine.
-func runRemoteGitCommand(ctx context.Context, cmd wrexec.Cmder, configRemoteOpts bool, progress io.Writer) ([]byte, error) {
+func runRemoteGitCommand(ctx context.Context, cmd wrexec.Cmder, remoteURL *vcs.URL, configRemoteOpts bool, progress io.Writer) ([]byte, error) {
 	if configRemoteOpts {
 		// Inherit process environment. This allows admins to configure
 		// variables like http_proxy/etc.
 		if cmd.Unwrap().Env == nil {
 			cmd.Unwrap().Env = os.Environ()
 		}
-		configureRemoteGitCommand(cmd.Unwrap(), tlsExternal())
+		configureRemoteGitCommand(cmd.Unwrap(), tlsExternal(), remoteURL)
 	}
 
 	var b interface {
@@ -270,7 +272,7 @@ func getTlsExternalDoNotInvoke() *tlsConfig {
 	}
 }
 
-func configureRemoteGitCommand(cmd *exec.Cmd, tlsConf *tlsConfig) {
+func configureRemoteGitCommand(cmd *exec.Cmd, tlsConf *tlsConfig, remoteURL *vcs.URL) {
 	// We split here in case the first command is an absolute path to the executable
 	// which allows us to safely match lower down
 	_, executable := path.Split(cmd.Args[0])
@@ -299,9 +301,29 @@ func configureRemoteGitCommand(cmd *exec.Cmd, tlsConf *tlsConfig) {
 		cmd.Env = append(cmd.Env, "GIT_SSL_CAINFO="+tlsConf.SSLCAInfo)
 	}
 
+	// Unset credential helper because the command is non-interactive.
+	credHelper := ""
+	// If we have creds in the URL, pass it in via the credHelper
+	if executable == "git" && !remoteURL.IsSSH() {
+		// If the remote URL is one of the args, remove the password from it.
+		hasCreds := false
+		for i, arg := range cmd.Args {
+			if arg == remoteURL.String() {
+				ru := *remoteURL
+				ru.User = url.User(remoteURL.User.Username())
+				cmd.Args[i] = ru.String()
+				hasCreds = true
+			}
+		}
+		if hasCreds {
+			if password, ok := remoteURL.User.Password(); ok {
+				credHelper = `!f() { echo "password=$GIT_SG_PASSWORD"; }; f`
+				cmd.Env = append(cmd.Env, "GIT_SG_PASSWORD="+password)
+			}
+		}
+	}
 	extraArgs := []string{
-		// Unset credential helper because the command is non-interactive.
-		"-c", "credential.helper=",
+		"-c", "credential.helper=" + credHelper,
 	}
 
 	if len(cmd.Args) > 1 && cmd.Args[1] != "ls-remote" {
