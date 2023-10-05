@@ -5,6 +5,7 @@ import { gql } from '@sourcegraph/http-client'
  * surface batch changes information on the repo `TreePage`, which is available to both
  * OSS and enterprise
  */
+// REMOVE ME
 export const REPO_CHANGESETS_STATS = gql`
     query RepoChangesetsStats($name: String!) {
         repository(name: $name) {
