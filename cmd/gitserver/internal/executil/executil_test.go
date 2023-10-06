@@ -95,10 +95,10 @@ func TestConfigureRemoteGitCommand(t *testing.T) {
 		},
 		{
 			input:       exec.Command("git", "ls-remote", remoteURL.String()),
-			expectedEnv: append(expectedEnv, "GIT_SG_PASSWORD=pass"),
+			expectedEnv: append(expectedEnv, "GIT_SG_USERNAME=user", "GIT_SG_PASSWORD=pass"),
 
 			// Don't use protocol.version=2 for ls-remote because it hurts perf.
-			expectedArgs: []string{"git", "-c", `credential.helper=!f() { echo "password=$GIT_SG_PASSWORD"; }; f`, "ls-remote", "https://user@example.com/repo.git"},
+			expectedArgs: []string{"git", "-c", "credential.helper=!f() { echo \"username=$GIT_SG_USERNAME\npassword=$GIT_SG_PASSWORD\"; }; f", "ls-remote", "https://example.com/repo.git"},
 		},
 
 		// tlsConfig tests

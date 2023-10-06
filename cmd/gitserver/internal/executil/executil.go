@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -332,21 +331,22 @@ func configureRemoteGitCommand(cmd *exec.Cmd, tlsConf *tlsConfig, remoteURL *vcs
 	// Unset credential helper because the command is non-interactive.
 	credHelper := ""
 	// If we have creds in the URL, pass it in via the credHelper
-	if executable == "git" && !remoteURL.IsSSH() {
-		// If the remote URL is one of the args, remove the password from it.
+	_, ok := remoteURL.User.Password()
+	if ok && executable == "git" && !remoteURL.IsSSH() {
+		// If the remote URL is one of the args, remove the user section from it.
 		hasCreds := false
 		for i, arg := range cmd.Args {
 			if arg == remoteURL.String() {
 				ru := *remoteURL
-				ru.User = url.User(remoteURL.User.Username())
+				ru.User = nil
 				cmd.Args[i] = ru.String()
 				hasCreds = true
 			}
 		}
 		if hasCreds {
 			if password, ok := remoteURL.User.Password(); ok {
-				credHelper = `!f() { echo "password=$GIT_SG_PASSWORD"; }; f`
-				cmd.Env = append(cmd.Env, "GIT_SG_PASSWORD="+password)
+				credHelper = "!f() { echo \"username=$GIT_SG_USERNAME\npassword=$GIT_SG_PASSWORD\"; }; f"
+				cmd.Env = append(cmd.Env, "GIT_SG_USERNAME="+remoteURL.User.Username(), "GIT_SG_PASSWORD="+password)
 			}
 		}
 	}
