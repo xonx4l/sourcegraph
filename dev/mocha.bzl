@@ -20,6 +20,9 @@ NON_BUNDLED = [
 
     # Dependencies with bundling issues
     "@sourcegraph/build-config",
+
+    # Used by require.resolve
+    "axe-core",
 ]
 
 # ... some of which are needed at runtime
@@ -68,7 +71,6 @@ def mocha_test(name, tests, deps = [], args = [], data = [], env = {}, is_percy_
     # `--define` flags are used to set environment variables here because
     # we use `js_run_binary` as a target and it doesn't work with `--test_env`.
     env = dict(env, **{
-        "HEADLESS": "$(E2E_HEADLESS)",
         # Add environment variable so that mocha writes its test xml
         # to the location Bazel expects.
         "MOCHA_FILE": "$$XML_OUTPUT_FILE",
@@ -76,7 +78,7 @@ def mocha_test(name, tests, deps = [], args = [], data = [], env = {}, is_percy_
         # TODO(bazel): e2e test environment
         "TEST_USER_EMAIL": "test@sourcegraph.com",
         "TEST_USER_PASSWORD": "supersecurepassword",
-        "SOURCEGRAPH_BASE_URL": "$(E2E_SOURCEGRAPH_BASE_URL)",
+        "SOURCEGRAPH_BASE_URL": "https://sourcegraph.test",  # backend is mocked so this can be anything
         "GH_TOKEN": "$(GH_TOKEN)",
         "SOURCEGRAPH_SUDO_TOKEN": "fake-sg-token",
         "NO_CLEANUP": "false",
