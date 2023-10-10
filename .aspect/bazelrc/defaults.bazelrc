@@ -1,3 +1,4 @@
 # These are only needed in CI, but an error is thrown when running locally if these are not set.
 build --define=PERCY_TOKEN=
 build --define=GH_TOKEN=
+build --define=SOURCEGRAPH_BASE_URL=http://localhost:7080
