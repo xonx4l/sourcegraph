@@ -7,8 +7,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/inconshreveable/log15"
 
+	"github.com/sourcegraph/log"
 	"github.com/sourcegraph/sourcegraph/internal/redispool"
 )
 
@@ -28,6 +28,7 @@ func DeleteOldCacheData(c redis.Conn) error {
 
 // Cache implements httpcache.Cache
 type Cache struct {
+	logger     log.Logger
 	keyPrefix  string
 	ttlSeconds int
 }
@@ -35,6 +36,7 @@ type Cache struct {
 // New creates a redis backed Cache
 func New(keyPrefix string) *Cache {
 	return &Cache{
+		logger:    log.Scoped("rcache", ""),
 		keyPrefix: keyPrefix,
 	}
 }
@@ -43,6 +45,7 @@ func New(keyPrefix string) *Cache {
 // ttlSeconds.
 func NewWithTTL(keyPrefix string, ttlSeconds int) *Cache {
 	return &Cache{
+		logger:     log.Scoped("rcache", ""),
 		keyPrefix:  keyPrefix,
 		ttlSeconds: ttlSeconds,
 	}
@@ -54,7 +57,7 @@ func (r *Cache) TTL() time.Duration { return time.Duration(r.ttlSeconds) * time.
 func (r *Cache) Get(key string) ([]byte, bool) {
 	b, err := kv().Get(r.rkeyPrefix() + key).Bytes()
 	if err != nil && err != redis.ErrNil {
-		log15.Warn("failed to execute redis command", "cmd", "GET", "error", err)
+		r.logger.Warn("failed to execute redis command", log.String("cmd", "GET"), log.Error(err))
 	}
 
 	return b, err == nil
@@ -63,13 +66,13 @@ func (r *Cache) Get(key string) ([]byte, bool) {
 // Set implements httpcache.Cache.Set
 func (r *Cache) Set(key string, b []byte) {
 	if !utf8.Valid([]byte(key)) {
-		log15.Error("rcache: keys must be valid utf8", "key", []byte(key))
+		r.logger.Error("rcache: keys must be valid utf8", log.String("key", key))
 	}
 
 	if r.ttlSeconds == 0 {
 		err := kv().Set(r.rkeyPrefix()+key, b)
 		if err != nil {
-			log15.Warn("failed to execute redis command", "cmd", "SET", "error", err)
+			r.logger.Warn("failed to execute redis command", log.String("cmd", "SET"), log.Error(err))
 		}
 	} else {
 		r.SetWithTTL(key, b, r.ttlSeconds)
@@ -78,19 +81,19 @@ func (r *Cache) Set(key string, b []byte) {
 
 func (r *Cache) SetWithTTL(key string, b []byte, ttl int) {
 	if !utf8.Valid([]byte(key)) {
-		log15.Error("rcache: keys must be valid utf8", "key", []byte(key))
+		r.logger.Error("keys must be valid utf8", log.String("key", key))
 	}
 
 	err := kv().SetEx(r.rkeyPrefix()+key, ttl, b)
 	if err != nil {
-		log15.Warn("failed to execute redis command", "cmd", "SETEX", "error", err)
+		r.logger.Warn("failed to execute redis command", log.String("cmd", "SETEX"), log.Error(err))
 	}
 }
 
 func (r *Cache) Increase(key string) {
 	_, err := kv().Incr(r.rkeyPrefix() + key)
 	if err != nil {
-		log15.Warn("failed to execute redis command", "cmd", "INCR", "error", err)
+		r.logger.Warn("failed to execute redis command", log.String("cmd", "INCR"), log.Error(err))
 		return
 	}
 
@@ -100,7 +103,7 @@ func (r *Cache) Increase(key string) {
 
 	err = kv().Expire(r.rkeyPrefix()+key, r.ttlSeconds)
 	if err != nil {
-		log15.Warn("failed to execute redis command", "cmd", "EXPIRE", "error", err)
+		r.logger.Warn("failed to execute redis command", log.String("cmd", "EXPIRE"), log.Error(err))
 		return
 	}
 }
@@ -108,7 +111,7 @@ func (r *Cache) Increase(key string) {
 func (r *Cache) KeyTTL(key string) (int, bool) {
 	ttl, err := kv().TTL(r.rkeyPrefix() + key)
 	if err != nil {
-		log15.Warn("failed to execute redis command", "cmd", "TTL", "error", err)
+		r.logger.Warn("failed to execute redis command", log.String("cmd", "TTL"), log.Error(err))
 		return -1, false
 	}
 	return ttl, ttl >= 0
@@ -150,7 +153,7 @@ func (r *Cache) GetHashAll(key string) (map[string]string, error) {
 func (r *Cache) Delete(key string) {
 	err := kv().Del(r.rkeyPrefix() + key)
 	if err != nil {
-		log15.Warn("failed to execute redis command", "cmd", "DEL", "error", err)
+		r.logger.Warn("failed to execute redis command", log.String("cmd", "DEL"), log.Error(err))
 	}
 }
 
@@ -163,6 +166,7 @@ func (r *Cache) rkeyPrefix() string {
 type TB interface {
 	Name() string
 	Skip(args ...any)
+	Error(args ...any)
 	Helper()
 }
 
@@ -198,7 +202,7 @@ func SetupForTest(t TB) {
 
 	err := redispool.DeleteAllKeysWithPrefix(c, globalPrefix)
 	if err != nil {
-		log15.Error("Could not clear test prefix", "name", t.Name(), "globalPrefix", globalPrefix, "error", err)
+		t.Error("could not clear test prefix", "name", t.Name(), "globalPrefix", globalPrefix, "error", err)
 	}
 }
 
