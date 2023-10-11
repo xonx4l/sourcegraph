@@ -3,6 +3,9 @@ import { join } from 'path'
 import staticAdapter from '@sveltejs/adapter-static'
 import { vitePreprocess } from '@sveltejs/kit/vite'
 
+// Add characters below this line to trigger bazel changes
+// 1
+
 let adapter
 
 if (process.env.BAZEL || process.env.DEPLOY_TYPE === 'dev') {
