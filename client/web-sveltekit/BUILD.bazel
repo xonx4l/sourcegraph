@@ -63,6 +63,7 @@ SRCS = [
 BUILD_DEPS = [
     ":graphql_operations_ts",
     ":node_modules/@faker-js/faker",
+    ":node_modules/@melt-ui/svelte",
     ":node_modules/@popperjs/core",
     ":node_modules/@remix-run/router",
     ":node_modules/@sourcegraph/branded",
