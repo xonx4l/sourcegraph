@@ -22,6 +22,8 @@ if (process.env.BAZEL || process.env.DEPLOY_TYPE === 'dev') {
     out = '../../ui/assets/'
   }
 
+  out += OUTPUT_DIR
+
   adapter = sgAdapter({
     out,
     // Path from which the web server will serve the SvelteKit files
@@ -109,15 +111,15 @@ function sgAdapter(options) {
   return {
     name: 'sg adapter',
     async adapt(builder) {
-      console.error('>>>>>>>> cwd', process.cwd())
-      console.error('>>>>>>>> files before', readdirSync(process.cwd()))
+      //console.error('>>>>>>>> cwd', process.cwd())
+      //console.error('>>>>>>>> files before', readdirSync(process.cwd()))
       const out = options.out || 'build'
       const appDir = builder.config.kit.appDir
       const tmp = builder.getBuildDirectory('sg-adapter')
       const fallback = join(tmp, options.fallback)
 
       builder.rimraf(tmp)
-      //builder.rimraf(out)
+      builder.rimraf(out)
 
       builder.writeClient(out)
       builder.writePrerendered(out)
@@ -130,7 +132,7 @@ function sgAdapter(options) {
       })
 
       builder.log(`Wrote site to "${out}"`)
-      console.error('>>>>>>>> files after', readdirSync(process.cwd()))
+      //console.error('>>>>>>>> files after', readdirSync(process.cwd()))
       // Force failure
       //process.exit(123)
     },
