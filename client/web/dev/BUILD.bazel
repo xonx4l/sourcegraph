@@ -19,11 +19,11 @@ ts_project(
     name = "dev",
     srcs = [
         "esbuild/build.ts",
+        "esbuild/config.ts",
         "esbuild/manifest.test.ts",
         "esbuild/manifest.ts",
         "esbuild/manifestPlugin.ts",
         "esbuild/server.ts",
-        "mocks/mockEventLogger.ts",
         "server/development.server.ts",
         "server/production.server.ts",
         "utils/constants.ts",
@@ -64,8 +64,8 @@ ts_project(
 )
 
 js_library(
-    name = "esbuild-config",
-    srcs = ["esbuild/esbuild.bazel.js"],
+    name = "esbuild-config-production",
+    srcs = ["esbuild/bazel/esbuild.bazel.production.js"],
     visibility = ["//client:__subpackages__"],
     deps = [
         "//client/build-config:build-config_lib",

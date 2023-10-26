@@ -2094,7 +2094,6 @@ ESBUILD_CONFIG_DEPS = [
     "//:node_modules/events",
     "//:node_modules/monaco-editor",
     "//:node_modules/esbuild",
-    "//client/web/dev",
     "//:node_modules/react-visibility-sensor",  # required for https://github.com/joshwnj/react-visibility-sensor/issues/148 workaround
     "//:postcss_config_js",
 
@@ -2110,7 +2109,7 @@ BUNDLE_DATA_DEPS = [
     # TODO(bazel): this is already in the main ts_project(srcs). Why also here?
     "src/enterprise/codeintel/configuration/schema.json",
     ":enterprise-yaml",
-    "//client/web/dev:esbuild-config",
+    "//client/web/dev:esbuild-config-production",
 ]
 
 esbuild(
@@ -2119,15 +2118,13 @@ esbuild(
         ":web_lib",
         "//:package_json",
     ],
-    config = "//client/web/dev:esbuild-config",
-    define = {
-        "process.env.NODE_ENV": "\"production\"",
-    },
+    config = "//client/web/dev:esbuild-config-production",
     entry_points = [
         "src/enterprise/main.js",
         "src/enterprise/embed/embedMain.js",
     ],
     minify = True,
+    sourcemap = "linked",
     splitting = True,
     visibility = ["//client/web/dist:__subpackages__"],
     deps = ESBUILD_CONFIG_DEPS,
@@ -2140,9 +2137,8 @@ esbuild_web_app(
         ":web_lib",
         "//:package_json",
     ],
-    config = "//client/web/dev:esbuild-config",
+    config = "//client/web/dev:esbuild-config-production",
     define = {
-        "process.env.NODE_ENV": "\"production\"",
         "process.env.INTEGRATION_TESTS": "true",
     },
     entry_points = [
