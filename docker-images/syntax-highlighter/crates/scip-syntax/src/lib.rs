@@ -104,7 +104,7 @@ mod test {
     generate_tags_and_snapshot!(Scip, test_scip_java, "globals.java");
     generate_tags_and_snapshot!(Scip, test_scip_typescript, "globals.ts");
     generate_tags_and_snapshot!(All, test_tags_csharp, test_scip_csharp, "globals.cs");
-    generate_tags_and_snapshot!(Scip, test_scip_scala, "globals.scala");
+    generate_tags_and_snapshot!(All, test_tags_scala, test_scip_scala, "globals.scala");
     generate_tags_and_snapshot!(All, test_tags_kotlin, test_scip_kotlin, "globals.kt");
 
     generate_tags_and_snapshot!(Scip, test_scip_go_internal, "internal_go.go");

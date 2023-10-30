@@ -1,0 +1,9 @@
+---
+source: crates/scip-syntax/src/lib.rs
+expression: "String::from_utf8_lossy(buf_writer.buffer())"
+---
+{"_type":"tag","name":"ParameterizedTypeAlias2","path":"globals.scala","language":"scala","line":101,"kind":"type","scope":"com.example.MinimizedScalaSignatures"}
+{"_type":"tag","name":"ParameterizedTypeAlias","path":"globals.scala","language":"scala","line":100,"kind":"type","scope":"com.example.MinimizedScalaSignatures"}
+{"_type":"tag","name":"TypeAlias","path":"globals.scala","language":"scala","line":99,"kind":"type","scope":"com.example.MinimizedScalaSignatures"}
+{"_type":"tag","name":"MyAlias","path":"globals.scala","language":"scala","line":49,"kind":"type","scope":"com.example"}
+
