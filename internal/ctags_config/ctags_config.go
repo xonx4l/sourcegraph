@@ -84,14 +84,15 @@ var DefaultEngines = map[string]ParserType{
 	"python":     ScipCtags,
 	"ruby":       ScipCtags,
 	"rust":       ScipCtags,
-	"scala":      ScipCtags,
 	"typescript": ScipCtags,
 	"zig":        ScipCtags,
 
-	// TODO: Not ready to turn on the following yet. Worried about not handling enough cases.
-	// May wait until after next release
-	// "c" / "c++"
-	// "java":   ScipCtags,
+	// TODO: Not ready to turn on the following yet, as they have not been
+	// thoroughly tested and may be missing important cases
+	//"c":     ScipCtags,
+	//"c++":   ScipCtags,
+	//"java":  ScipCtags,
+	//"scala": ScipCtags,
 }
 
 func CreateEngineMap(siteConfig schema.SiteConfiguration) map[string]ParserType {
