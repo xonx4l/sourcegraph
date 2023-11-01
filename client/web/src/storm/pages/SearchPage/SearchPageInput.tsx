@@ -154,7 +154,6 @@ export const SearchPageInput: FC<SearchPageInputProps> = props => {
                 setSearchMode={setSearchMode}
                 settingsCascade={settingsCascade}
                 navbarSearchQuery={queryState.query}
-                showCopyQueryButton={false}
                 showSmartSearchButton={false}
                 structuralSearchDisabled={window.context?.experimentalFeatures?.structuralSearch === 'disabled'}
             />
