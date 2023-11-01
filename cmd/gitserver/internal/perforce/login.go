@@ -2,7 +2,6 @@ package perforce
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -109,21 +108,11 @@ func P4Test(ctx context.Context, p4home, p4port, p4user, p4passwd string) error 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	info := exec.CommandContext(ctx, "p4", "info")
-	info.Env = append(os.Environ(),
-		"P4PORT="+p4port,
-		"P4USER="+p4user,
-		"P4PASSWD="+p4passwd,
-		"HOME="+p4home,
-	)
-	o, e := executil.RunCommandCombinedOutput(ctx, wrexec.Wrap(ctx, log.NoOp(), info))
-	fmt.Printf(">>>> INFO ERR: %v\n>>>> OUT: %v\n", e, string(o))
-
 	// `p4 ping` requires extra-special access, so we want to avoid using it
 	//
 	// p4 login -s checks the connection and the credentials,
 	// so it seems like the perfect alternative to `p4 ping`.
-	cmd := exec.CommandContext(ctx, "p4", "-v", "3", "login", "-s")
+	cmd := exec.CommandContext(ctx, "p4", "login", "-s")
 	cmd.Env = append(os.Environ(),
 		"P4PORT="+p4port,
 		"P4USER="+p4user,
