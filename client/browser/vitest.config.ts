@@ -1,5 +1,3 @@
-import path from 'path'
-
 import { BAZEL, defineProjectWithDefaults } from '../../vitest.shared'
 
 export default defineProjectWithDefaults(__dirname, {
@@ -12,10 +10,10 @@ export default defineProjectWithDefaults(__dirname, {
         ],
 
         setupFiles: [
-            'src/testSetup.test.ts',
-            '../testing/src/reactCleanup.ts',
-            '../testing/src/fetch.js',
-            '../testing/src/mockUniqueId.ts',
+            require.resolve('./src/testSetup.test.ts'),
+            require.resolve('../testing/src/reactCleanup.ts'),
+            require.resolve('../testing/src/fetch.js'),
+            require.resolve('../testing/src/mockUniqueId.ts'),
         ],
 
         // For some reason, watch mode fails with `Error: Failed to terminate worker` unless

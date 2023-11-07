@@ -6,6 +6,6 @@ export default defineProjectWithDefaults(__dirname, {
             ['**/*.tsx', 'jsdom'],
             ['src/util/(useInputValidation|dom).test.ts', 'jsdom'],
         ],
-        setupFiles: ['src/testSetup.test.ts', '../testing/src/reactCleanup.ts'],
+        setupFiles: [require.resolve('./src/testSetup.test.ts'), require.resolve('../testing/src/reactCleanup.ts')],
     },
 })
