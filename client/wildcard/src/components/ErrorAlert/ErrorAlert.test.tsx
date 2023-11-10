@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { renderWithBrandedContext } from '../../testing'
+import { renderWithBrandedContext } from '../..'
 
 import { ErrorAlert } from './ErrorAlert'
 

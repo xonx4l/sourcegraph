@@ -14,7 +14,7 @@ import {
 
 import '@sourcegraph/shared/src/testing/mockReactVisibilitySensor'
 
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import { FileMatchChildren } from './FileMatchChildren'
 

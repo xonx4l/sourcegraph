@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import { SettingsProvider } from '@sourcegraph/shared/src/settings/settings'
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import { Notices } from './Notices'
 

@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react'
 import { describe, expect, test } from 'vitest'
 
 import { MockedTestProvider } from '@sourcegraph/shared/src/testing/apollo'
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import { OnboardingChecklist } from './OnboardingChecklist'
 import { completeSiteConfig, incompleteSiteConfig } from './OnboardingChecklist.mocks'

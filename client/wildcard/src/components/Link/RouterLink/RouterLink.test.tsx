@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { renderWithBrandedContext } from '../../../testing'
+import { renderWithBrandedContext } from '../../..'
 
 import { RouterLink } from './RouterLink'
 

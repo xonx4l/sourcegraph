@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { renderWithBrandedContext } from '../../../../testing'
+import { renderWithBrandedContext } from '../../../..'
 
 import { StackedMeter } from './StackedMeter'
 

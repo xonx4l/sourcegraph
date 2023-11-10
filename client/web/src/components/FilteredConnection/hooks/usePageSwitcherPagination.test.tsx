@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { dataOrThrowErrors, getDocumentNode } from '@sourcegraph/http-client'
 import { MockedTestProvider, waitForNextApolloResponse } from '@sourcegraph/shared/src/testing/apollo'
 import { Text } from '@sourcegraph/wildcard'
-import { type RenderWithBrandedContextResult, renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { type RenderWithBrandedContextResult, renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import { usePageSwitcherPagination } from './usePageSwitcherPagination'
 

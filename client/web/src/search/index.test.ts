@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, test } from 'vitest'
 import { logger, resetAllMemoizationCaches } from '@sourcegraph/common'
 import { SearchMode } from '@sourcegraph/shared/src/search'
 import { createBarrier } from '@sourcegraph/testing'
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import { SearchPatternType } from '../graphql-operations'
 

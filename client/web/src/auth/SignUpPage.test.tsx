@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { NOOP_TELEMETRY_SERVICE } from '@sourcegraph/shared/src/telemetry/telemetryService'
 import { MockedTestProvider } from '@sourcegraph/shared/src/testing/apollo'
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import type { AuthenticatedUser } from '../auth'
 import type { SourcegraphContext } from '../jscontext'

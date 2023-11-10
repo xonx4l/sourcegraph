@@ -2,7 +2,7 @@ import React from 'react'
 
 import { describe, expect, test, vi } from 'vitest'
 
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import { ErrorBoundary } from './ErrorBoundary'
 

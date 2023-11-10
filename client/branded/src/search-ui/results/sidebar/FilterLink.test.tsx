@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { SearchScope } from '@sourcegraph/shared/src/schema/settings.schema'
 import type { Filter } from '@sourcegraph/shared/src/search/stream'
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import { getDynamicFilterLinks, getRepoFilterLinks, getSearchSnippetLinks } from './FilterLink'
 

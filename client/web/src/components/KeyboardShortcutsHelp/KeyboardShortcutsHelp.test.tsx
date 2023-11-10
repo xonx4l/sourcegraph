@@ -5,7 +5,7 @@ import { describe, expect, test } from 'vitest'
 
 import { Shortcut, ShortcutProvider } from '@sourcegraph/shared/src/react-shortcuts'
 import { MockedTestProvider } from '@sourcegraph/shared/src/testing/apollo'
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp'
 

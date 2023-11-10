@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import type { Progress } from '@sourcegraph/shared/src/search/stream'
 import { NOOP_TELEMETRY_SERVICE } from '@sourcegraph/shared/src/telemetry/telemetryService'
 import { assertAriaDisabled, assertAriaEnabled } from '@sourcegraph/testing'
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import { StreamingProgressSkippedPopover } from './StreamingProgressSkippedPopover'
 

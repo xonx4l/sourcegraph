@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { QuickLink } from '@sourcegraph/shared/src/schema/settings.schema'
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import { getQuickLinks } from './QuickLink'
 

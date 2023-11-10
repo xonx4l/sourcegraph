@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import sinon from 'sinon'
 import { describe, expect, test } from 'vitest'
 
-import { renderWithBrandedContext } from '../../testing'
+import { renderWithBrandedContext } from '../..'
 
 import { ButtonLink } from './ButtonLink'
 

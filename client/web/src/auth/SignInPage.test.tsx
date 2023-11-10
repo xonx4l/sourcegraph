@@ -2,7 +2,7 @@ import { within } from '@testing-library/dom'
 import { Route, Routes } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import type { AuthenticatedUser } from '../auth'
 import type { SourcegraphContext } from '../jscontext'

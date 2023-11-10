@@ -5,7 +5,7 @@ import { NEVER } from 'rxjs'
 import { afterEach, describe, expect, it, test, vi } from 'vitest'
 
 import { assertAriaEnabled, createBarrier } from '@sourcegraph/testing'
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import { NOOP_TELEMETRY_SERVICE } from '../telemetry/telemetryService'
 

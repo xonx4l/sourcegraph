@@ -2,7 +2,7 @@ import type { RenderResult } from '@testing-library/react'
 import PuzzleOutlineIcon from 'mdi-react/PuzzleOutlineIcon'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { renderWithBrandedContext } from '../../testing'
+import { renderWithBrandedContext } from '../..'
 
 import { PageHeader } from './PageHeader'
 

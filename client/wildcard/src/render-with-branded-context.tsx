@@ -13,7 +13,7 @@ import {
     Outlet,
 } from 'react-router-dom'
 
-import { WildcardThemeContext, type WildcardTheme } from '../hooks/useWildcardTheme'
+import { WildcardThemeContext, type WildcardTheme } from './hooks/useWildcardTheme'
 
 export interface RenderWithBrandedContextResult extends RenderResult {
     locationRef: LocationRef

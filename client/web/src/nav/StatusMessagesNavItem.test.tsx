@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import { MockedTestProvider } from '@sourcegraph/shared/src/testing/apollo'
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import { StatusMessagesNavItem } from './StatusMessagesNavItem'
 import { allStatusMessages, newStatusMessageMock } from './StatusMessagesNavItem.mocks'

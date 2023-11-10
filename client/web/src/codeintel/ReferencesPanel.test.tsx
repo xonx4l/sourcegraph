@@ -8,7 +8,7 @@ import { MockedTestProvider, waitForNextApolloResponse } from '@sourcegraph/shar
 import '@sourcegraph/shared/src/testing/mockReactVisibilitySensor'
 
 import { Code } from '@sourcegraph/wildcard'
-import { renderWithBrandedContext } from '@sourcegraph/wildcard/src/testing'
+import { renderWithBrandedContext } from '@sourcegraph/wildcard/src'
 
 import type { BlobProps } from '../repo/blob/CodeMirrorBlob'
 

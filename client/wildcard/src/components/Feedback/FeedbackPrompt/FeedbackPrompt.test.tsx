@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 
 import { assertAriaDisabled, assertAriaEnabled } from '@sourcegraph/testing'
 
-import { renderWithBrandedContext } from '../../../testing'
+import { renderWithBrandedContext } from '../../..'
 import { Button } from '../../Button'
 import { PopoverTrigger } from '../../Popover'
 
