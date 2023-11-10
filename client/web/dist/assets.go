@@ -4,7 +4,6 @@ import (
 	"embed"
 	"encoding/json"
 	"io"
-	"io/fs"
 	"net/http"
 	"sync"
 
@@ -12,18 +11,11 @@ import (
 	"github.com/sourcegraph/sourcegraph/ui/assets"
 )
 
-// By default, `go:embed *` will ignore files that start with `.` or `_`. `all:*` on the other
-// hand will truly include all files.
-//
-//go:embed all:*
+//go:embed *
 var assetsFS embed.FS
-var afs fs.FS = assetsFS
-
-var Assets http.FileSystem
 
 var (
 	webBuildManifestOnce sync.Once
-	assetsOnce           sync.Once
 	webBuildManifest     *assets.WebBuildManifest
 	webBuildManifestErr  error
 )
@@ -37,7 +29,7 @@ type Provider struct{}
 
 func (p Provider) LoadWebBuildManifest() (*assets.WebBuildManifest, error) {
 	webBuildManifestOnce.Do(func() {
-		f, err := afs.Open("web.manifest.json")
+		f, err := assetsFS.Open("vite-manifest.json")
 		if err != nil {
 			webBuildManifestErr = errors.Wrap(err, "read manifest file")
 			return
@@ -58,22 +50,8 @@ func (p Provider) LoadWebBuildManifest() (*assets.WebBuildManifest, error) {
 	return webBuildManifest, webBuildManifestErr
 }
 
-func (p Provider) Assets() http.FileSystem {
-	assetsOnce.Do(func() {
-		// When we're building this package with Bazel, we cannot directly output the files in this current folder, because
-		// it's already containing other files known to Bazel. So instead we put those into the dist folder.
-		// If we do detect a dist folder when running this code, we immediately substitute the root to that dist folder.
-		//
-		// Therefore, this code works with both the traditionnal build approach and when built with Bazel.
-		if _, err := assetsFS.ReadDir("dist"); err == nil {
-			var err error
-			afs, err = fs.Sub(assetsFS, "dist")
-			if err != nil {
-				panic("incorrect embed")
-			}
-		}
-		Assets = http.FS(afs)
-	})
+var providerAssets = http.FS(assetsFS)
 
-	return Assets
+func (p Provider) Assets() http.FileSystem {
+	return providerAssets
 }

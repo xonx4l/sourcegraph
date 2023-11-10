@@ -1,4 +1,4 @@
-// Package ui handles server-side rendering of the Sourcegraph web app.
+// Package ui handles server-side rendering of the Sourcegraph web app.2
 //
 // # Development
 //

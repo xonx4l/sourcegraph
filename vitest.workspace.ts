@@ -9,7 +9,6 @@ interface PnpmWorkspaceFile {
     packages: string[]
 }
 const workspaceFile = load(readFileSync(path.join(__dirname, 'pnpm-workspace.yaml'), 'utf8')) as PnpmWorkspaceFile
-workspaceFile.packages.push('client/web/dev') // is a tsconfig project but not a pnpm workspace package
 const projectRoots = workspaceFile.packages
     .flatMap(p => glob.sync(`${p}/`, { cwd: __dirname }))
     .map(p => p.replace(/\/$/, ''))
