@@ -108,7 +108,7 @@ var ExternalClientFactory = NewExternalClientFactory()
 // UncachedExternalClientFactory is a httpcli.Factory with common options
 // and middleware pre-set for communicating with external services, but with caching
 // responses disabled.
-var UncachedExternalClientFactory = newExternalClientFactory(false)
+var UncachedExternalClientFactory = newExternalClientFactory(false, false)
 
 var (
 	externalTimeout, _               = time.ParseDuration(env.Get("SRC_HTTP_CLI_EXTERNAL_TIMEOUT", "5m", "Timeout for external HTTP requests"))
@@ -125,7 +125,7 @@ var (
 // use them for one-off requests if possible, and definitely not for larger payloads,
 // like downloading arbitrarily sized files!
 func NewExternalClientFactory(middleware ...Middleware) *Factory {
-	return newExternalClientFactory(true, middleware...)
+	return newExternalClientFactory(true, false, middleware...)
 }
 
 // NewExternalClientFactory returns a httpcli.Factory with common options
@@ -133,7 +133,9 @@ func NewExternalClientFactory(middleware ...Middleware) *Factory {
 // middleware can also be provided to e.g. enable logging with NewLoggingMiddleware.
 // If cache is true, responses will be cached in redis for improved rate limiting
 // and reduced byte transfer sizes.
-func newExternalClientFactory(cache bool, middleware ...Middleware) *Factory {
+// If testOpt is true, a test-only transport option will be used that does not have
+// any IP restrictions for external requests.
+func newExternalClientFactory(cache bool, testOpt bool, middleware ...Middleware) *Factory {
 	mw := []Middleware{
 		ContextErrorMiddleware,
 		HeadersMiddleware("User-Agent", "Sourcegraph-Bot"),
@@ -141,12 +143,19 @@ func newExternalClientFactory(cache bool, middleware ...Middleware) *Factory {
 	}
 	mw = append(mw, middleware...)
 
+	var externalTransportOpt Opt
+	if testOpt {
+		externalTransportOpt = TestExternalTransportOpt
+	} else {
+		externalTransportOpt = ExternalTransportOpt
+	}
+
 	opts := []Opt{
 		NewTimeoutOpt(externalTimeout),
-		// ExternalTransportOpt needs to be before TracedTransportOpt and
+		// externalTransportOpt needs to be before TracedTransportOpt and
 		// NewCachedTransportOpt since it wants to extract a http.Transport,
 		// not a generic http.RoundTripper.
-		ExternalTransportOpt,
+		externalTransportOpt,
 		NewErrorResilientTransportOpt(
 			NewRetryPolicy(MaxRetries(externalRetryMaxAttempts), externalRetryAfterMaxDuration),
 			ExpJitterDelayOrRetryAfterDelay(externalRetryDelayBase, externalRetryDelayMax),
@@ -169,6 +178,18 @@ func newExternalClientFactory(cache bool, middleware ...Middleware) *Factory {
 // one-off requests if possible, and definitely not for larger payloads, like
 // downloading arbitrarily sized files! See UncachedExternalClient instead.
 var ExternalDoer, _ = ExternalClientFactory.Doer()
+
+// TestExternalClientFactory is a httpcli.Factory with common options
+// and middleware pre-set for communicating with TestExternalClientFactory services.
+var TestExternalClientFactory = newExternalClientFactory(false, true)
+
+// TestExternalClientFactory is a httpcli.Factory with common options
+// and middleware pre-set for communicating with TestExternalClientFactory services.
+var TestExternalClient, _ = TestExternalClientFactory.Client()
+
+// TestExternalDoer is a shared client for external communication used for tests.
+// It does not apply any IP filering.
+var TestExternalDoer, _ = TestExternalClientFactory.Doer()
 
 // ExternalClient returns a shared client for external communication. This is
 // a convenience for existing uses of http.DefaultClient.
@@ -368,9 +389,28 @@ func NewLoggingMiddleware(logger log.Logger) Middleware {
 }
 
 // Common Opts
-var hostList = env.Get("EXTERNAL_DENY_LIST", "", "Deny list for outgoing requests")
-var denyList = hostmatcher.ParseHostMatchList("", hostList)
-var once sync.Once
+var externalDenyList = env.Get("EXTERNAL_DENY_LIST", "", "Deny list for outgoing requests")
+
+type denyRule struct {
+	pattern string
+	builtin string
+}
+
+var defaultDenylist = []denyRule{
+	{builtin: "loopback"},
+	{pattern: "169.254.169.254"},
+}
+
+// TestTransportOpt creates a transport for tests that does not apply any denylisting
+func TestExternalTransportOpt(cli *http.Client) error {
+	tr, err := getTransportForMutation(cli)
+	if err != nil {
+		return errors.Wrap(err, "httpcli.ExternalTransportOpt")
+	}
+
+	cli.Transport = &externalTransport{base: tr}
+	return nil
+}
 
 // ExternalTransportOpt returns an Opt that ensures the http.Client.Transport
 // can contact non-Sourcegraph services. For example Admins can configure
@@ -381,10 +421,14 @@ func ExternalTransportOpt(cli *http.Client) error {
 		return errors.Wrap(err, "httpcli.ExternalTransportOpt")
 	}
 
-	once.Do(func() {
-		denyList.AppendBuiltin("loopback")
-		denyList.AppendPattern("169.254.169.254")
-	})
+	var denyList = hostmatcher.ParseHostMatchList("EXTERNAL_DENY_LIST", externalDenyList)
+	for _, rule := range defaultDenylist {
+		if rule.builtin != "" {
+			denyList.AppendBuiltin(rule.builtin)
+		} else if rule.pattern != "" {
+			denyList.AppendPattern(rule.pattern)
+		}
+	}
 
 	// this dialer will match resolved domain names against the deny list
 	tr.DialContext = hostmatcher.NewDialContext("", nil, denyList)
