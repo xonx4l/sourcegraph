@@ -4,8 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import { dataOrThrowErrors, getDocumentNode, gql } from '@sourcegraph/http-client'
 import { MockedTestProvider, waitForNextApolloResponse } from '@sourcegraph/shared/src/testing/apollo'
-import { Text } from '@sourcegraph/wildcard'
-import { type RenderWithBrandedContextResult, renderWithBrandedContext } from '@sourcegraph/wildcard/src'
+import { Text, type RenderWithBrandedContextResult, renderWithBrandedContext } from '@sourcegraph/wildcard'
 
 import type {
     TestShowMorePaginationQueryFields,
