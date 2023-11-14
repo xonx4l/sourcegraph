@@ -1814,6 +1814,9 @@ type Repository struct {
 
 	// Parent is non-nil for forks and contains details of the parent repository.
 	Parent *ParentRepository `json:",omitempty"`
+
+	// For filtering
+	SizeKibiBytes int `json:",omitempty"`
 }
 
 // ParentRepository is the parent of a GitHub repository.
@@ -1862,6 +1865,7 @@ type restRepository struct {
 	Visibility  string                    `json:"visibility"`
 	Topics      []string                  `json:"topics"`
 	Parent      *restParentRepository     `json:"parent,omitempty"`
+	Size        int                       `json:"size"`
 }
 
 // getRepositoryFromAPI attempts to fetch a repository from the GitHub API without use of the redis cache.
@@ -1904,6 +1908,7 @@ func convertRestRepo(restRepo restRepository) *Repository {
 		ForkCount:        restRepo.Forks,
 		RepositoryTopics: RepositoryTopics{topics},
 		Visibility:       Visibility(restRepo.Visibility),
+		SizeKibiBytes:    restRepo.Size,
 	}
 
 	if restRepo.Parent != nil {

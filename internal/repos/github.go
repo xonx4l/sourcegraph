@@ -137,7 +137,26 @@ func newGitHubSource(
 		}
 		return false
 	}
+
+	// excludeLargeReposUnderStars := func(size string, stars float64) func(repo any) bool {
+	// 	return func(repo any) bool {
+	// 		githubRepo, ok := repo.(github.Repository)
+	// 		if !ok {
+	// 			return false
+	// 		}
+	// 		fmt.Printf("gitHubRepo: %+v\n", githubRepo)
+	// 		fmt.Printf("size: %+v, stars: %+v\n", size, stars)
+	// 		// if githubRepo.Size > size && githubRepo.StargazersCount < stars {
+	// 		// }
+	// 		// if the size of the repo is greater than size and stars is less than stars
+	// 		return true
+	// 	}
+	// }
+
 	for _, r := range c.Exclude {
+		// if r.SizeAbove != "" && r.LessThanStars != 0.0 {
+		// 	eb.Generic(excludeLargeReposUnderStars(r.SizeAbove, r.LessThanStars))
+		// }
 		if r.Archived {
 			eb.Generic(excludeArchived)
 		}
