@@ -110,6 +110,8 @@ function makeRepositoryPattern(repo: string): string {
 /** The time in ms to delay between unindexed search request and the fallback indexed search request. */
 const DEFAULT_UNINDEXED_SEARCH_TIMEOUT_MS = 5000
 
+export type RepoFilter = 'current-repo' | 'all-other-repos'
+
 /**
  * Invoke the given search function by modifying the query with a term that will
  * only look in the current git tree by appending a repo filter with the repo name
@@ -125,7 +127,6 @@ const DEFAULT_UNINDEXED_SEARCH_TIMEOUT_MS = 5000
  *
  * @param search The search function.
  * @param args The arguments to the search function.
- * @param negateRepoFilter Whether to look only inside or outside the given repo.
  */
 export function searchWithFallback<
     P extends {
@@ -136,14 +137,14 @@ export function searchWithFallback<
         queryTerms: string[]
     },
     R
->(search: (args: P) => Promise<R>, args: P, negateRepoFilter = false, getSetting: SettingsGetter): Promise<R> {
+>(search: (args: P) => Promise<R>, args: P, repoFilter: RepoFilter, getSetting: SettingsGetter): Promise<R> {
     if (getSetting<boolean>('basicCodeIntel.indexOnly', false)) {
-        return searchIndexed(search, args, negateRepoFilter, getSetting)
+        return searchIndexed(search, args, repoFilter, getSetting)
     }
 
     return raceWithDelayOffset(
-        searchUnindexed(search, args, negateRepoFilter, getSetting),
-        () => searchIndexed(search, args, negateRepoFilter, getSetting),
+        searchUnindexed(search, args, repoFilter, getSetting),
+        () => searchIndexed(search, args, repoFilter, getSetting),
         getSetting<number>('basicCodeIntel.unindexedSearchTimeout', DEFAULT_UNINDEXED_SEARCH_TIMEOUT_MS)
     )
 }
@@ -153,18 +154,16 @@ export function searchWithFallback<
  *
  * @param search The search function.
  * @param args The arguments to the search function.
- * @param negateRepoFilter Whether to look only inside or outside the given repo.
  */
 function searchIndexed<
     P extends {
         repo: string
         isFork: boolean
         isArchived: boolean
-        commit: string
         queryTerms: string[]
     },
     R
->(search: (args: P) => Promise<R>, args: P, negateRepoFilter = false, getSetting: SettingsGetter): Promise<R> {
+>(search: (args: P) => Promise<R>, args: P, repoFilter: RepoFilter, getSetting: SettingsGetter): Promise<R> {
     const { repo, isFork, isArchived, queryTerms } = args
 
     // Create a copy of the args so that concurrent calls to other
@@ -175,14 +174,22 @@ function searchIndexed<
     // Unlike unindexed search, we can't supply a commit as that particular
     // commit may not be indexed. We force index and look inside/outside
     // the repo at _whatever_ commit happens to be indexed at the time.
-    queryTermsCopy.push((negateRepoFilter ? '-' : '') + `repo:${makeRepositoryPattern(repo)}`)
+    let prefix: string | undefined = undefined
+    const isCurrentRepoSearch = repoFilter == 'current-repo'
+    if (isCurrentRepoSearch) {
+        prefix = ''
+    } else {
+        const _: 'all-other-repos' = repoFilter
+        prefix = '-'
+    }
+    queryTermsCopy.push(prefix + `repo:${makeRepositoryPattern(repo)}`)
     queryTermsCopy.push('index:only')
 
     // If we're a fork, search in forks _for the same repo_. Otherwise,
     // search in forks only if it's set in the settings. This is also
     // symmetric for archived repositories.
     queryTermsCopy.push(
-        ...repositoryKindTerms(isFork && !negateRepoFilter, isArchived && !negateRepoFilter, getSetting)
+        ...repositoryKindTerms(isFork && isCurrentRepoSearch, isArchived && isCurrentRepoSearch, getSetting)
     )
 
     return search({ ...args, queryTerms: queryTermsCopy })
@@ -204,7 +211,7 @@ function searchUnindexed<
         queryTerms: string[]
     },
     R
->(search: (args: P) => Promise<R>, args: P, negateRepoFilter = false, getSetting: SettingsGetter): Promise<R> {
+>(search: (args: P) => Promise<R>, args: P, repoFilter: RepoFilter, getSetting: SettingsGetter): Promise<R> {
     const { repo, isFork, isArchived, commit, queryTerms } = args
 
     // Create a copy of the args so that concurrent calls to other
@@ -212,10 +219,12 @@ function searchUnindexed<
     // modified.
     const queryTermsCopy = [...queryTerms]
 
-    if (!negateRepoFilter) {
+    const isCurrentRepoSearch = repoFilter === 'current-repo'
+    if (isCurrentRepoSearch) {
         // Look in this commit only
         queryTermsCopy.push(`repo:${makeRepositoryPattern(repo)}@${commit}`)
     } else {
+        const _: 'all-other-repos' = repoFilter
         // Look outside the repo (not outside the commit)
         queryTermsCopy.push(`-repo:${makeRepositoryPattern(repo)}`)
     }
@@ -224,7 +233,7 @@ function searchUnindexed<
     // search in forks only if it's set in the settings. This is also
     // symmetric for archived repositories.
     queryTermsCopy.push(
-        ...repositoryKindTerms(isFork && !negateRepoFilter, isArchived && !negateRepoFilter, getSetting)
+        ...repositoryKindTerms(isFork && isCurrentRepoSearch, isArchived && isCurrentRepoSearch, getSetting)
     )
 
     return search({ ...args, queryTerms: queryTermsCopy })
