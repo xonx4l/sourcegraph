@@ -18,7 +18,6 @@ go_library(
         "//internal/httptestutil",
         "//internal/lazyregexp",
         "//internal/metrics",
-        "//internal/ratelimit",
         "//internal/trace",
         "//lib/errors",
         "//schema",
@@ -27,8 +26,6 @@ go_library(
         "@com_github_inconshreveable_log15//:log15",
         "@com_github_roaringbitmap_roaring//:roaring",
         "@com_github_segmentio_fasthash//fnv1",
-        "@com_github_sourcegraph_log//:log",
-        "@org_golang_x_time//rate",
     ],
 )
 
@@ -43,7 +40,6 @@ go_test(
     embed = [":bitbucketserver"],
     deps = [
         "//internal/extsvc/auth",
-        "//internal/ratelimit",
         "//schema",
         "@com_github_gomodule_oauth1//oauth",
         "@com_github_google_go_cmp//cmp",
@@ -51,6 +47,5 @@ go_test(
         "@com_github_sergi_go_diff//diffmatchpatch",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
-        "@org_golang_x_time//rate",
     ],
 )

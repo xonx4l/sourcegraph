@@ -22,7 +22,6 @@ type config struct {
 	owner string
 	name  string
 	uri   string
-	urn   string
 
 	token         string
 	webhookSecret string
@@ -37,7 +36,6 @@ func parseSiteConfig(conf *conf.Unified) (*config, error) {
 		owner:    "sourcegraph",
 		name:     "src-cli",
 		uri:      "https://github.com",
-		urn:      "releasecache:github.com",
 	}
 
 	// There's a _lot_ of pointer indirection boilerplate required to build up
@@ -93,7 +91,7 @@ func parseSiteConfig(conf *conf.Unified) (*config, error) {
 
 // NewReleaseCache builds a new VersionCache based on the current site config.
 func (c *config) NewReleaseCache(logger log.Logger) ReleaseCache {
-	client := github.NewV4Client(c.urn, c.api, &auth.OAuthBearerToken{Token: c.token}, nil)
+	client := github.NewV4Client(c.api, &auth.OAuthBearerToken{Token: c.token}, nil)
 
 	return newReleaseCache(logger, client, c.owner, c.name)
 }

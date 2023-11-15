@@ -15,11 +15,13 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/actor",
+        "//internal/conf",
         "//internal/conf/deploy",
         "//internal/env",
         "//internal/instrumentation",
         "//internal/lazyregexp",
         "//internal/metrics",
+        "//internal/ratelimit",
         "//internal/rcache",
         "//internal/requestclient",
         "//internal/trace",

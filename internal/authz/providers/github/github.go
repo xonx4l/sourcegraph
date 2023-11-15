@@ -60,8 +60,7 @@ type ProviderOptions struct {
 func NewProvider(urn string, opts ProviderOptions) *Provider {
 	if opts.GitHubClient == nil {
 		apiURL, _ := github.APIRoot(opts.GitHubURL)
-		opts.GitHubClient = github.NewV3Client(log.Scoped("provider.github.v3"),
-			urn, apiURL, opts.BaseAuther, nil)
+		opts.GitHubClient = github.NewV3Client(log.Scoped("provider.github.v3"), apiURL, opts.BaseAuther, nil)
 	}
 
 	codeHost := extsvc.NewCodeHost(opts.GitHubURL, extsvc.TypeGitHub)

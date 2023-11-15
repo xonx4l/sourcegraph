@@ -6,6 +6,7 @@ import (
 
 	"github.com/sourcegraph/sourcegraph/cmd/worker/job"
 	workerdb "github.com/sourcegraph/sourcegraph/cmd/worker/shared/init/db"
+	"github.com/sourcegraph/sourcegraph/internal/conf"
 	"github.com/sourcegraph/sourcegraph/internal/env"
 	"github.com/sourcegraph/sourcegraph/internal/goroutine"
 	"github.com/sourcegraph/sourcegraph/internal/observation"
@@ -36,7 +37,7 @@ func (s *rateLimitConfigJob) Routines(_ context.Context, observationCtx *observa
 		logger:               logger,
 		externalServiceStore: db.ExternalServices(),
 		newRateLimiterFunc: func(bucketName string) ratelimit.GlobalLimiter {
-			return ratelimit.NewGlobalRateLimiter(logger, bucketName)
+			return ratelimit.NewGlobalRateLimiter(logger, bucketName, func() *int { return conf.Get().DefaultRateLimit })
 		},
 	})
 

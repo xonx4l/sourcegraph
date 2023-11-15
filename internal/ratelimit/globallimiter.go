@@ -16,7 +16,6 @@ import (
 	"github.com/sourcegraph/log"
 	"golang.org/x/time/rate"
 
-	"github.com/sourcegraph/sourcegraph/internal/conf"
 	"github.com/sourcegraph/sourcegraph/internal/conf/deploy"
 	"github.com/sourcegraph/sourcegraph/internal/redispool"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
@@ -54,10 +53,11 @@ type GlobalLimiter interface {
 }
 
 type globalRateLimiter struct {
-	prefix     string
-	bucketName string
-	pool       *redis.Pool
-	logger     log.Logger
+	prefix          string
+	bucketName      string
+	pool            *redis.Pool
+	logger          log.Logger
+	getDefaultLimit func() *int
 
 	// optionally used for tests
 	nowFunc func() time.Time
@@ -65,7 +65,7 @@ type globalRateLimiter struct {
 	timerFunc func(d time.Duration) (<-chan time.Time, func() bool)
 }
 
-func NewGlobalRateLimiter(logger log.Logger, bucketName string) GlobalLimiter {
+func NewGlobalRateLimiter(logger log.Logger, bucketName string, getDefaultLimit func() *int) GlobalLimiter {
 	logger = logger.Scoped(fmt.Sprintf("GlobalRateLimiter.%s", bucketName))
 
 	// Pool can return false for ok if the implementation of `KeyValue` is not
@@ -88,17 +88,18 @@ func NewGlobalRateLimiter(logger log.Logger, bucketName string) GlobalLimiter {
 			logger.Error("Redis pool not set, global rate limiter will not work as expected")
 		}
 		rl := -1 // Documented default in site-config JSON schema. -1 means infinite.
-		if rate := conf.Get().DefaultRateLimit; rate != nil {
+		if rate := getDefaultLimit(); rate != nil {
 			rl = *rate
 		}
 		return getInMemoryLimiter(bucketName, rl)
 	}
 
 	return &globalRateLimiter{
-		prefix:     tokenBucketGlobalPrefix,
-		bucketName: bucketName,
-		pool:       pool,
-		logger:     logger,
+		prefix:          tokenBucketGlobalPrefix,
+		bucketName:      bucketName,
+		pool:            pool,
+		logger:          logger,
+		getDefaultLimit: getDefaultLimit,
 	}
 }
 
@@ -182,7 +183,7 @@ func (r *globalRateLimiter) waitn(ctx context.Context, n int, requestTime time.T
 	fallbackRateLimit := -1 // equivalent of rate.Inf
 	// the rate limit in the config is in requests per hour, whereas rate.Limit is in
 	// requests per second.
-	if rate := conf.Get().DefaultRateLimit; rate != nil {
+	if rate := r.getDefaultLimit(); rate != nil {
 		fallbackRateLimit = *rate
 	}
 
@@ -212,7 +213,7 @@ func (r *globalRateLimiter) waitn(ctx context.Context, n int, requestTime time.T
 		// be used, which can be configured using site config under `.defaultRateLimit`.
 
 		defaultRateLimit := 3600 // Allow 1 request / s per code host in fallback mode, if defaultRateLimit is not configured.
-		if rate := conf.Get().DefaultRateLimit; rate != nil {
+		if rate := r.getDefaultLimit(); rate != nil {
 			defaultRateLimit = *rate
 		}
 		rl := getInMemoryLimiter(r.bucketName, defaultRateLimit)

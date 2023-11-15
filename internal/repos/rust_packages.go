@@ -25,7 +25,7 @@ func NewRustPackagesSource(ctx context.Context, svc *types.ExternalService, cf *
 		return nil, errors.Errorf("external service id=%d config error: %s", svc.ID, err)
 	}
 
-	client, err := crates.NewClient(svc.URN(), cf)
+	client, err := crates.NewClient(cf)
 	if err != nil {
 		return nil, err
 	}

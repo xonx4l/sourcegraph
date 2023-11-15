@@ -4,12 +4,14 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"math"
 	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,10 +25,12 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/sourcegraph/sourcegraph/internal/actor"
+	"github.com/sourcegraph/sourcegraph/internal/conf"
 	"github.com/sourcegraph/sourcegraph/internal/env"
 	"github.com/sourcegraph/sourcegraph/internal/instrumentation"
 	"github.com/sourcegraph/sourcegraph/internal/lazyregexp"
 	"github.com/sourcegraph/sourcegraph/internal/metrics"
+	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/sourcegraph/sourcegraph/internal/rcache"
 	"github.com/sourcegraph/sourcegraph/internal/requestclient"
 	"github.com/sourcegraph/sourcegraph/internal/trace"
@@ -145,6 +149,7 @@ func newExternalClientFactory(cache bool, middleware ...Middleware) *Factory {
 			ExpJitterDelayOrRetryAfterDelay(externalRetryDelayBase, externalRetryDelayMax),
 		),
 		TracedTransportOpt,
+		RateLimitedTransportOpt,
 	}
 	if cache {
 		opts = append(opts, CachedTransportOpt)
@@ -859,4 +864,105 @@ func containsRiskyHeaderValue(values []string) bool {
 		}
 	}
 	return false
+}
+
+// RateLimitedTransportOpt returns an opt that wraps an existing http.Transport
+// of a http.Client with our GlobalLimiter.
+var RateLimitedTransportOpt Opt = func(cli *http.Client) error {
+	if cli.Transport == nil {
+		cli.Transport = http.DefaultTransport
+	}
+
+	cli.Transport = &rateLimitedTransport{RoundTripper: cli.Transport}
+
+	return nil
+}
+
+type rateLimitedTransport struct {
+	http.RoundTripper
+}
+
+func (r *rateLimitedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	host, port := getHostPort(req.URL)
+
+	if shouldRateLimit(host, port) {
+		rl := ratelimit.NewInstrumentedLimiter(
+			fmt.Sprintf("%s:%d", host, port),
+			ratelimit.NewGlobalRateLimiter(
+				log.Scoped("RateLimitedTransport"),
+				host+":"+strconv.Itoa(port),
+				func() *int {
+					return conf.Get().DefaultRateLimit
+				},
+			),
+		)
+
+		if err := rl.Wait(req.Context()); err != nil {
+			return nil, err
+		}
+	}
+
+	return r.RoundTripper.RoundTrip(req)
+}
+
+func shouldRateLimit(host string, port int) bool {
+	// We never want to allow rate limiting sourcegraph owned endpoints.
+	// These include:
+	// - codygateway.sourcegraph.com
+	// - pings.sourcegraph.com
+	// - sourcegraph.com
+	// As limiting those heavily will either affect UX badly or provide a way
+	// to prevent pings / license checks from happening.
+	if host == "sourcegraph.com" || strings.HasSuffix(host, ".sourcegraph.com") {
+		return false
+	}
+	return true
+}
+
+func getHostPort(u *url.URL) (host string, port int) {
+	host = u.Hostname()
+	portS := u.Port()
+	if portS == "" {
+		if u.Scheme == "https" {
+			port = 443
+		} else {
+			port = 80
+		}
+	} else {
+		port, _ = strconv.Atoi(portS)
+	}
+
+	return host, port
+}
+
+var ensureHTTPClientIsConfiguredOnce sync.Once
+
+// EnsureHTTPClientIsConfigured configures the httpcli package settings. We have to do this
+// in this package as conf itself uses httpcli's internal client.
+func EnsureHTTPClientIsConfigured() {
+	ensureHTTPClientIsConfiguredOnce.Do(func() {
+		go conf.Watch(func() {
+			// TLS external config
+			tlsBefore := TLSExternalConfig()
+			tlsAfter := conf.Get().ExperimentalFeatures.TlsExternal
+			if !reflect.DeepEqual(tlsBefore, tlsAfter) {
+				SetTLSExternalConfig(tlsAfter)
+			}
+
+			// Outbound request log limit and redact headers
+			outboundRequestLogLimitBefore := OutboundRequestLogLimit()
+			outboundRequestLogLimitAfter := int32(conf.Get().OutboundRequestLogLimit)
+			if outboundRequestLogLimitBefore != outboundRequestLogLimitAfter {
+				SetOutboundRequestLogLimit(outboundRequestLogLimitAfter)
+			}
+			redactOutboundRequestHeadersBefore := RedactOutboundRequestHeaders()
+			redactOutboundRequestHeadersAfter := true
+			if conf.Get().RedactOutboundRequestHeaders != nil {
+				redactOutboundRequestHeadersAfter = *conf.Get().RedactOutboundRequestHeaders
+			}
+			if redactOutboundRequestHeadersBefore != redactOutboundRequestHeadersAfter {
+				SetRedactOutboundRequestHeaders(redactOutboundRequestHeadersAfter)
+			}
+		})
+	})
 }

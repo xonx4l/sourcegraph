@@ -8,11 +8,10 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/sourcegraph/sourcegraph/internal/httpcli"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/time/rate"
+
+	"github.com/sourcegraph/sourcegraph/internal/httpcli"
 )
 
 func TestClient_do(t *testing.T) {
@@ -31,7 +30,6 @@ func TestClient_do(t *testing.T) {
 	c := &client{
 		httpClient: httpcli.ExternalDoer,
 		URL:        srvURL,
-		rateLimit:  &ratelimit.InstrumentedLimiter{Limiter: rate.NewLimiter(10, 10)},
 	}
 
 	t.Run("prefix does not get trimmed if not present", func(t *testing.T) {

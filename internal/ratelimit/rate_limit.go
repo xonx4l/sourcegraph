@@ -25,16 +25,15 @@ type InspectableLimiter interface {
 // InstrumentedLimiter wraps a Limiter with instrumentation.
 type InstrumentedLimiter struct {
 	Limiter
-
-	urn string
+	scope string
 }
 
 // NewInstrumentedLimiter creates new InstrumentedLimiter with given URN and Limiter,
 // usually a rate.Limiter.
-func NewInstrumentedLimiter(urn string, limiter Limiter) *InstrumentedLimiter {
+func NewInstrumentedLimiter(scope string, limiter Limiter) *InstrumentedLimiter {
 	return &InstrumentedLimiter{
-		urn:     urn,
 		Limiter: limiter,
+		scope:   scope,
 	}
 }
 
@@ -70,7 +69,7 @@ func (i *InstrumentedLimiter) WaitN(ctx context.Context, n int) error {
 		failedLabel = "true"
 	}
 
-	metricWaitDuration.WithLabelValues(i.urn, failedLabel).Observe(d.Seconds())
+	metricWaitDuration.WithLabelValues(i.scope, failedLabel).Observe(d.Seconds())
 	return err
 }
 
@@ -81,4 +80,4 @@ var metricWaitDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 	Name:    "src_internal_rate_limit_wait_duration",
 	Help:    "Time spent waiting for our internal rate limiter",
 	Buckets: []float64{0.2, 0.5, 1, 2, 5, 10, 30, 60},
-}, []string{"urn", "failed"})
+}, []string{"scope", "failed"})

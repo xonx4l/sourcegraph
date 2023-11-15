@@ -50,7 +50,7 @@ func NewBitbucketServerSource(ctx context.Context, svc *types.ExternalService, c
 		return nil, err
 	}
 
-	client, err := bitbucketserver.NewClient(svc.URN(), &c, cli)
+	client, err := bitbucketserver.NewClient(&c, cli)
 	if err != nil {
 		return nil, err
 	}

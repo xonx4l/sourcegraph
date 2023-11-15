@@ -191,7 +191,7 @@ func TestSessionIssuerHelper_GetOrCreateUser(t *testing.T) {
 					Url:    server.URL,
 					ApiURL: server.URL,
 				}
-				bbClient, err := bitbucketcloud.NewClient(server.URL, conf, nil)
+				bbClient, err := bitbucketcloud.NewClient(conf, nil)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -272,7 +272,7 @@ func TestSessionIssuerHelper_SignupMatchesSecondaryAccount(t *testing.T) {
 		Url:    server.URL,
 		ApiURL: server.URL,
 	}
-	bbClient, err := bitbucketcloud.NewClient(server.URL, conf, nil)
+	bbClient, err := bitbucketcloud.NewClient(conf, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

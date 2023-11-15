@@ -74,7 +74,7 @@ func newGitHubSource(ctx context.Context, db database.DB, urn string, c *schema.
 
 	return &GitHubSource{
 		au:     auther,
-		client: github.NewV4Client(urn, apiURL, auther, cli),
+		client: github.NewV4Client(apiURL, auther, cli),
 	}, nil
 }
 

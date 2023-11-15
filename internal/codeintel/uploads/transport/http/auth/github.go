@@ -8,7 +8,6 @@ import (
 
 	"github.com/sourcegraph/log"
 
-	"github.com/sourcegraph/sourcegraph/internal/extsvc"
 	"github.com/sourcegraph/sourcegraph/internal/extsvc/auth"
 	"github.com/sourcegraph/sourcegraph/internal/extsvc/github"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
@@ -58,8 +57,7 @@ var _ AuthValidator = enforceAuthViaGitHub
 func uncachedEnforceAuthViaGitHub(ctx context.Context, githubToken, repoName string) (int, error) {
 	logger := log.Scoped("uncachedEnforceAuthViaGitHub")
 
-	ghClient := github.NewV3Client(logger,
-		extsvc.URNCodeIntel, githubURL, &auth.OAuthBearerToken{Token: githubToken}, nil)
+	ghClient := github.NewV3Client(logger, githubURL, &auth.OAuthBearerToken{Token: githubToken}, nil)
 
 	if author, err := checkGitHubPermissions(ctx, repoName, ghClient); err != nil {
 		if githubErr := new(github.APIError); errors.As(err, &githubErr) {

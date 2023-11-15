@@ -11,9 +11,7 @@ go_library(
         "//internal/errcode",
         "//internal/httpcli",
         "//internal/lazyregexp",
-        "//internal/ratelimit",
         "//lib/errors",
-        "@com_github_sourcegraph_log//:log",
         "@org_golang_x_net//html",
     ],
 )
@@ -27,11 +25,9 @@ go_test(
     deps = [
         "//internal/httpcli",
         "//internal/httptestutil",
-        "//internal/ratelimit",
         "//internal/testutil",
         "//internal/unpack",
         "@com_github_google_go_cmp//cmp",
         "@com_github_grafana_regexp//:regexp",
-        "@org_golang_x_time//rate",
     ],
 )

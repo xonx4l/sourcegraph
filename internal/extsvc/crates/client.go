@@ -6,35 +6,24 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/sourcegraph/log"
-
 	"github.com/sourcegraph/sourcegraph/internal/httpcli"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 )
 
 type Client struct {
 	uncachedClient httpcli.Doer
-
-	// Self-imposed rate-limiter.
-	limiter *ratelimit.InstrumentedLimiter
 }
 
-func NewClient(urn string, httpfactory *httpcli.Factory) (*Client, error) {
-	uncached, err := httpfactory.Doer(httpcli.NewCachedTransportOpt(httpcli.NoopCache{}, false))
+func NewClient(cf *httpcli.Factory) (*Client, error) {
+	uncached, err := cf.Doer(httpcli.NewCachedTransportOpt(httpcli.NoopCache{}, false))
 	if err != nil {
 		return nil, err
 	}
 	return &Client{
 		uncachedClient: uncached,
-		limiter:        ratelimit.NewInstrumentedLimiter(urn, ratelimit.NewGlobalRateLimiter(log.Scoped("RustCratesClient"), urn)),
 	}, nil
 }
 
 func (c *Client) Get(ctx context.Context, url string) (io.ReadCloser, error) {
-	if err := c.limiter.Wait(ctx); err != nil {
-		return nil, err
-	}
-
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err

@@ -188,7 +188,7 @@ func TestIntegration_GitHubPermissions(t *testing.T) {
 	// "sourcegraph-vcr-repos/private-org-repo-1".
 	t.Run("repo-centric", func(t *testing.T) {
 		t.Run("no-groups", func(t *testing.T) {
-			cli := newTestRecorderClient(t, svc.URN(), uri, token)
+			cli := newTestRecorderClient(t, uri, token)
 
 			provider := authzGitHub.NewProvider(svc.URN(), authzGitHub.ProviderOptions{
 				GitHubClient:   cli,
@@ -205,7 +205,7 @@ func TestIntegration_GitHubPermissions(t *testing.T) {
 		})
 
 		t.Run("groups-enabled", func(t *testing.T) {
-			cli := newTestRecorderClient(t, svc.URN(), uri, token)
+			cli := newTestRecorderClient(t, uri, token)
 
 			provider := authzGitHub.NewProvider(svc.URN(), authzGitHub.ProviderOptions{
 				GitHubClient:   cli,
@@ -227,7 +227,7 @@ func TestIntegration_GitHubPermissions(t *testing.T) {
 	// user "sourcegraph-vcr-bob", who is a collaborator of "sourcegraph-vcr-repos/private-org-repo-1".
 	t.Run("user-centric", func(t *testing.T) {
 		t.Run("no-groups", func(t *testing.T) {
-			cli := newTestRecorderClient(t, svc.URN(), uri, token)
+			cli := newTestRecorderClient(t, uri, token)
 
 			provider := authzGitHub.NewProvider(svc.URN(), authzGitHub.ProviderOptions{
 				GitHubClient:   cli,
@@ -244,7 +244,7 @@ func TestIntegration_GitHubPermissions(t *testing.T) {
 		})
 
 		t.Run("groups-enabled", func(t *testing.T) {
-			cli := newTestRecorderClient(t, svc.URN(), uri, token)
+			cli := newTestRecorderClient(t, uri, token)
 
 			provider := authzGitHub.NewProvider(svc.URN(), authzGitHub.ProviderOptions{
 				GitHubClient:   cli,
@@ -262,7 +262,7 @@ func TestIntegration_GitHubPermissions(t *testing.T) {
 	})
 }
 
-func newTestRecorderClient(t *testing.T, urn string, apiURL *url.URL, token string) *extsvcGitHub.V3Client {
+func newTestRecorderClient(t *testing.T, apiURL *url.URL, token string) *extsvcGitHub.V3Client {
 	name := t.Name()
 
 	cf, save := httptestutil.NewGitHubRecorderFactory(t, update(name), name)
@@ -271,7 +271,7 @@ func newTestRecorderClient(t *testing.T, urn string, apiURL *url.URL, token stri
 	if err != nil {
 		t.Fatal(err)
 	}
-	cli := extsvcGitHub.NewV3Client(logtest.Scoped(t), urn, apiURL, &auth.OAuthBearerToken{Token: token}, doer)
+	cli := extsvcGitHub.NewV3Client(logtest.Scoped(t), apiURL, &auth.OAuthBearerToken{Token: token}, doer)
 	return cli
 }
 
@@ -309,7 +309,7 @@ func TestIntegration_GitHubInternalRepositories(t *testing.T) {
 	}
 	apiURI, _ := github.APIRoot(uri)
 
-	cli := newTestRecorderClient(t, uri.String(), apiURI, token)
+	cli := newTestRecorderClient(t, apiURI, token)
 
 	testDB := database.NewDB(logger, dbtest.NewDB(t))
 	ctx := actor.WithInternalActor(context.Background())

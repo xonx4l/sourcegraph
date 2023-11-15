@@ -48,7 +48,7 @@ func NewBitbucketCloudSource(ctx context.Context, svc *types.ExternalService, cf
 		return nil, errors.Wrap(err, "creating external client")
 	}
 
-	client, err := bitbucketcloud.NewClient(svc.URN(), &c, cli)
+	client, err := bitbucketcloud.NewClient(&c, cli)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating Bitbucket Cloud client")
 	}

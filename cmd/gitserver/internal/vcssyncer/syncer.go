@@ -86,32 +86,32 @@ func NewVCSSyncer(ctx context.Context, opts *NewVCSSyncerOpts) (VCSSyncer, error
 		return nil, errors.Wrap(err, "get repository")
 	}
 
-	extractOptions := func(connection any) (string, error) {
+	extractOptions := func(connection any) error {
 		for _, info := range r.Sources {
 			extSvc, err := opts.ExternalServiceStore.GetByID(ctx, info.ExternalServiceID())
 			if err != nil {
-				return "", errors.Wrap(err, "get external service")
+				return errors.Wrap(err, "get external service")
 			}
 			rawConfig, err := extSvc.Config.Decrypt(ctx)
 			if err != nil {
-				return "", err
+				return err
 			}
 			normalized, err := jsonc.Parse(rawConfig)
 			if err != nil {
-				return "", errors.Wrap(err, "normalize JSON")
+				return errors.Wrap(err, "normalize JSON")
 			}
 			if err = jsoniter.Unmarshal(normalized, connection); err != nil {
-				return "", errors.Wrap(err, "unmarshal JSON")
+				return errors.Wrap(err, "unmarshal JSON")
 			}
-			return extSvc.URN(), nil
+			return nil
 		}
-		return "", errors.Errorf("unexpected empty Sources map in %v", r)
+		return errors.Errorf("unexpected empty Sources map in %v", r)
 	}
 
 	switch r.ExternalRepo.ServiceType {
 	case extsvc.TypePerforce:
 		var c schema.PerforceConnection
-		if _, err := extractOptions(&c); err != nil {
+		if err := extractOptions(&c); err != nil {
 			return nil, err
 		}
 
@@ -123,58 +123,58 @@ func NewVCSSyncer(ctx context.Context, opts *NewVCSSyncerOpts) (VCSSyncer, error
 		return NewPerforceDepotSyncer(opts.Logger, opts.RecordingCommandFactory, &c, p4Home), nil
 	case extsvc.TypeJVMPackages:
 		var c schema.JVMPackagesConnection
-		if _, err := extractOptions(&c); err != nil {
+		if err := extractOptions(&c); err != nil {
 			return nil, err
 		}
 		return NewJVMPackagesSyncer(&c, opts.DepsSvc, opts.CoursierCacheDir, opts.ReposDir), nil
 	case extsvc.TypeNpmPackages:
 		var c schema.NpmPackagesConnection
-		urn, err := extractOptions(&c)
+		err := extractOptions(&c)
 		if err != nil {
 			return nil, err
 		}
-		cli, err := npm.NewHTTPClient(urn, c.Registry, c.Credentials, httpcli.ExternalClientFactory)
+		cli, err := npm.NewHTTPClient(c.Registry, c.Credentials, httpcli.ExternalClientFactory)
 		if err != nil {
 			return nil, err
 		}
 		return NewNpmPackagesSyncer(c, opts.DepsSvc, cli, opts.ReposDir), nil
 	case extsvc.TypeGoModules:
 		var c schema.GoModulesConnection
-		urn, err := extractOptions(&c)
+		err := extractOptions(&c)
 		if err != nil {
 			return nil, err
 		}
-		cli := gomodproxy.NewClient(urn, c.Urls, httpcli.ExternalClientFactory)
+		cli := gomodproxy.NewClient(c.Urls, httpcli.ExternalClientFactory)
 		return NewGoModulesSyncer(&c, opts.DepsSvc, cli, opts.ReposDir), nil
 	case extsvc.TypePythonPackages:
 		var c schema.PythonPackagesConnection
-		urn, err := extractOptions(&c)
+		err := extractOptions(&c)
 		if err != nil {
 			return nil, err
 		}
-		cli, err := pypi.NewClient(urn, c.Urls, httpcli.ExternalClientFactory)
+		cli, err := pypi.NewClient(c.Urls, httpcli.ExternalClientFactory)
 		if err != nil {
 			return nil, err
 		}
 		return NewPythonPackagesSyncer(&c, opts.DepsSvc, cli, opts.ReposDir), nil
 	case extsvc.TypeRustPackages:
 		var c schema.RustPackagesConnection
-		urn, err := extractOptions(&c)
+		err := extractOptions(&c)
 		if err != nil {
 			return nil, err
 		}
-		cli, err := crates.NewClient(urn, httpcli.ExternalClientFactory)
+		cli, err := crates.NewClient(httpcli.ExternalClientFactory)
 		if err != nil {
 			return nil, err
 		}
 		return NewRustPackagesSyncer(&c, opts.DepsSvc, cli, opts.ReposDir), nil
 	case extsvc.TypeRubyPackages:
 		var c schema.RubyPackagesConnection
-		urn, err := extractOptions(&c)
+		err := extractOptions(&c)
 		if err != nil {
 			return nil, err
 		}
-		cli, err := rubygems.NewClient(urn, c.Repository, httpcli.ExternalClientFactory)
+		cli, err := rubygems.NewClient(c.Repository, httpcli.ExternalClientFactory)
 		if err != nil {
 			return nil, err
 		}

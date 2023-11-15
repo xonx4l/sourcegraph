@@ -31,9 +31,6 @@ import (
 type V3Client struct {
 	log log.Logger
 
-	// The URN of the external service that the client is derived from.
-	urn string
-
 	// apiURL is the base URL of a GitHub API. It must point to the base URL of the GitHub API. This
 	// is https://api.github.com for GitHub.com and http[s]://[github-enterprise-hostname]/api for
 	// GitHub Enterprise.
@@ -55,9 +52,6 @@ type V3Client struct {
 	// externalRateLimiter is the external API rate limit monitor.
 	externalRateLimiter *ratelimit.Monitor
 
-	// internalRateLimiter is our self-imposed rate limiter
-	internalRateLimiter *ratelimit.InstrumentedLimiter
-
 	// waitForRateLimit determines whether or not the client will wait and retry a request if external rate limits are encountered
 	waitForRateLimit bool
 
@@ -74,8 +68,8 @@ type V3Client struct {
 //
 // apiURL must point to the base URL of the GitHub API. See the docstring for
 // V3Client.apiURL.
-func NewV3Client(logger log.Logger, urn string, apiURL *url.URL, a auth.Authenticator, cli httpcli.Doer) *V3Client {
-	return newV3Client(logger, urn, apiURL, a, "rest", cli)
+func NewV3Client(logger log.Logger, apiURL *url.URL, a auth.Authenticator, cli httpcli.Doer) *V3Client {
+	return newV3Client(logger, apiURL, a, "rest", cli)
 }
 
 // NewV3SearchClient creates a new GitHub API client intended for use with the
@@ -83,11 +77,11 @@ func NewV3Client(logger log.Logger, urn string, apiURL *url.URL, a auth.Authenti
 //
 // apiURL must point to the base URL of the GitHub API. See the docstring for
 // V3Client.apiURL.
-func NewV3SearchClient(logger log.Logger, urn string, apiURL *url.URL, a auth.Authenticator, cli httpcli.Doer) *V3Client {
-	return newV3Client(logger, urn, apiURL, a, "search", cli)
+func NewV3SearchClient(logger log.Logger, apiURL *url.URL, a auth.Authenticator, cli httpcli.Doer) *V3Client {
+	return newV3Client(logger, apiURL, a, "search", cli)
 }
 
-func newV3Client(logger log.Logger, urn string, apiURL *url.URL, a auth.Authenticator, resource string, cli httpcli.Doer) *V3Client {
+func newV3Client(logger log.Logger, apiURL *url.URL, a auth.Authenticator, resource string, cli httpcli.Doer) *V3Client {
 	apiURL = canonicalizedURL(apiURL)
 	if gitHubDisable {
 		cli = disabledClient{}
@@ -112,21 +106,17 @@ func newV3Client(logger log.Logger, urn string, apiURL *url.URL, a auth.Authenti
 		tokenHash = a.Hash()
 	}
 
-	rl := ratelimit.NewInstrumentedLimiter(urn, ratelimit.NewGlobalRateLimiter(log.Scoped("GitHubClient"), urn))
 	rlm := ratelimit.DefaultMonitorRegistry.GetOrSet(apiURL.String(), tokenHash, resource, &ratelimit.Monitor{HeaderPrefix: "X-"})
 
 	return &V3Client{
 		log: logger.Scoped("github.v3").
 			With(
-				log.String("urn", urn),
 				log.String("resource", resource),
 			),
-		urn:                 urn,
 		apiURL:              apiURL,
 		githubDotCom:        URLIsGitHubDotCom(apiURL),
 		auth:                a,
 		httpClient:          cli,
-		internalRateLimiter: rl,
 		externalRateLimiter: rlm,
 		resource:            resource,
 		waitForRateLimit:    true,
@@ -138,7 +128,7 @@ func newV3Client(logger log.Logger, urn string, apiURL *url.URL, a auth.Authenti
 // the current V3Client, except authenticated as the GitHub user with the given
 // authenticator instance (most likely a token).
 func (c *V3Client) WithAuthenticator(a auth.Authenticator) *V3Client {
-	return newV3Client(c.log, c.urn, c.apiURL, a, c.resource, c.httpClient)
+	return newV3Client(c.log, c.apiURL, a, c.resource, c.httpClient)
 }
 
 // SetWaitForRateLimit sets whether the client should respond to external rate
@@ -222,18 +212,6 @@ func (c *V3Client) request(ctx context.Context, req *http.Request, result any) (
 		req.Header.Add("Accept", "application/vnd.github.nebula-preview+json")
 	}
 
-	err := c.internalRateLimiter.Wait(ctx)
-	if err != nil {
-		// We don't want to return a misleading rate limit exceeded error if the error is coming
-		// from the context.
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
-
-		c.log.Warn("internal rate limiter error", log.Error(err))
-		return nil, errInternalRateLimitExceeded
-	}
-
 	if c.waitForRateLimit {
 		c.externalRateLimiter.WaitForRateLimit(ctx, 1) // We don't care whether we waited or not, this is a preventative measure.
 	}
@@ -244,6 +222,7 @@ func (c *V3Client) request(ctx context.Context, req *http.Request, result any) (
 	// So when we retry, we can reset to the original state.
 	var reqBody []byte
 	var reqURL *url.URL
+	var err error
 	if req.Body != nil {
 		reqBody, err = io.ReadAll(req.Body)
 		if err != nil {

@@ -345,7 +345,7 @@ func (r *gitHubAppResolver) syncInstallations() {
 	}
 	apiURL, _ := github.APIRoot(baseURL)
 
-	client := github.NewV3Client(r.logger, "", apiURL, auther, nil)
+	client := github.NewV3Client(r.logger, apiURL, auther, nil)
 
 	errs := r.db.GitHubApps().SyncInstallations(ctx, *r.app, r.logger, client)
 	if errs != nil && len(errs.Errors()) > 0 {

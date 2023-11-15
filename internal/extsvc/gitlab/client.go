@@ -153,7 +153,6 @@ type Client struct {
 	projCache           *rcache.Cache
 	Auth                auth.Authenticator
 	externalRateLimiter *ratelimit.Monitor
-	internalRateLimiter *ratelimit.InstrumentedLimiter
 	waitForRateLimit    bool
 	maxRateLimitRetries int
 }
@@ -180,7 +179,6 @@ func (p *ClientProvider) NewClient(a auth.Authenticator) *Client {
 	}
 	projCache := rcache.NewWithTTL(key, int(cacheTTL/time.Second))
 
-	rl := ratelimit.NewInstrumentedLimiter(p.urn, ratelimit.NewGlobalRateLimiter(log.Scoped("GitLabClient"), p.urn))
 	rlm := ratelimit.DefaultMonitorRegistry.GetOrSet(p.baseURL.String(), tokenHash, "rest", &ratelimit.Monitor{})
 
 	return &Client{
@@ -190,7 +188,6 @@ func (p *ClientProvider) NewClient(a auth.Authenticator) *Client {
 		httpClient:          p.httpClient,
 		projCache:           projCache,
 		Auth:                a,
-		internalRateLimiter: rl,
 		externalRateLimiter: rlm,
 		waitForRateLimit:    true,
 		maxRateLimitRetries: 2,
@@ -209,13 +206,6 @@ func (c *Client) Urn() string {
 // do is the default method for making API requests and will prepare the correct
 // base path.
 func (c *Client) do(ctx context.Context, req *http.Request, result any) (responseHeader http.Header, responseCode int, err error) {
-	if c.internalRateLimiter != nil {
-		err = c.internalRateLimiter.Wait(ctx)
-		if err != nil {
-			return nil, 0, errors.Wrap(err, "rate limit")
-		}
-	}
-
 	if c.waitForRateLimit {
 		// We don't care whether this happens or not as it is a preventative measure.
 		_ = c.externalRateLimiter.WaitForRateLimit(ctx, 1)
@@ -300,7 +290,6 @@ func (c *Client) WithAuthenticator(a auth.Authenticator) *Client {
 	tokenHash := a.Hash()
 
 	cc := *c
-	cc.internalRateLimiter = ratelimit.NewInstrumentedLimiter(c.urn, ratelimit.NewGlobalRateLimiter(log.Scoped("GitLabClient"), c.urn))
 	cc.externalRateLimiter = ratelimit.DefaultMonitorRegistry.GetOrSet(cc.baseURL.String(), tokenHash, "rest", &ratelimit.Monitor{})
 	cc.Auth = a
 

@@ -14,14 +14,12 @@ import (
 
 	"github.com/dnaeon/go-vcr/cassette"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/time/rate"
 	"gotest.tools/assert"
 
 	"github.com/sourcegraph/sourcegraph/internal/extsvc/auth"
 	"github.com/sourcegraph/sourcegraph/internal/httpcli"
 	"github.com/sourcegraph/sourcegraph/internal/httptestutil"
 	"github.com/sourcegraph/sourcegraph/internal/lazyregexp"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/sourcegraph/sourcegraph/internal/rcache"
 )
 
@@ -56,8 +54,6 @@ func NewTestClient(t testing.TB, name string, update bool) (Client, func()) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	cli.(*client).internalRateLimiter = ratelimit.NewInstrumentedLimiter("azuredevops", rate.NewLimiter(100, 10))
 
 	return cli, func() {
 		if err := rec.Stop(); err != nil {
@@ -140,7 +136,6 @@ func TestRateLimitRetry(t *testing.T) {
 			})
 			a := &auth.BasicAuth{Username: "test", Password: "test"}
 			c, err := NewClient("test", srv.URL, a, nil)
-			c.(*client).internalRateLimiter = ratelimit.NewInstrumentedLimiter("azuredevops", rate.NewLimiter(100, 10))
 			require.NoError(t, err)
 			c.SetWaitForRateLimit(tt.waitForRateLimit)
 

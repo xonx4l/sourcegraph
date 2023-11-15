@@ -11,13 +11,10 @@ import (
 
 	"golang.org/x/mod/module"
 
-	"github.com/sourcegraph/log"
-
 	"github.com/sourcegraph/sourcegraph/internal/conf/reposource"
 
 	"github.com/sourcegraph/sourcegraph/internal/errcode"
 	"github.com/sourcegraph/sourcegraph/internal/httpcli"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
@@ -26,19 +23,17 @@ type Client struct {
 	urls           []string // list of proxy URLs
 	uncachedClient httpcli.Doer
 	cachedClient   httpcli.Doer
-	limiter        *ratelimit.InstrumentedLimiter
 }
 
 // NewClient returns a new Client for the given urls. urn represents the
 // unique urn of the external service this client's config is from.
-func NewClient(urn string, urls []string, httpfactory *httpcli.Factory) *Client {
+func NewClient(urls []string, httpfactory *httpcli.Factory) *Client {
 	uncached, _ := httpfactory.Doer(httpcli.NewCachedTransportOpt(httpcli.NoopCache{}, false))
 	cached, _ := httpfactory.Doer()
 	return &Client{
 		urls:           urls,
 		cachedClient:   cached,
 		uncachedClient: uncached,
-		limiter:        ratelimit.NewInstrumentedLimiter(urn, ratelimit.NewGlobalRateLimiter(log.Scoped("GoModClient"), urn)),
 	}
 }
 
@@ -95,10 +90,6 @@ func (c *Client) get(ctx context.Context, doer httpcli.Doer, mod reposource.Pack
 	)
 
 	for _, baseURL := range c.urls {
-		if err = c.limiter.Wait(ctx); err != nil {
-			return nil, err
-		}
-
 		reqURL, err = url.Parse(baseURL)
 		if err != nil {
 			return nil, errors.Errorf("invalid go modules proxy URL %q", baseURL)

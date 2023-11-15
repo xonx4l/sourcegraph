@@ -12,12 +12,10 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/time/rate"
 
 	"github.com/sourcegraph/sourcegraph/internal/conf/reposource"
 	"github.com/sourcegraph/sourcegraph/internal/httpcli"
 	"github.com/sourcegraph/sourcegraph/internal/httptestutil"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/sourcegraph/sourcegraph/internal/unpack"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
@@ -36,8 +34,7 @@ func newTestHTTPClient(t *testing.T) (client *HTTPClient, stop func()) {
 	t.Helper()
 	recorderFactory, stop := httptestutil.NewRecorderFactory(t, *updateRecordings, t.Name())
 
-	client, _ = NewHTTPClient("urn", "https://registry.npmjs.org", "", recorderFactory)
-	client.limiter = ratelimit.NewInstrumentedLimiter("npm", rate.NewLimiter(100, 10))
+	client, _ = NewHTTPClient("https://registry.npmjs.org", "", recorderFactory)
 	return client, stop
 }
 
@@ -76,8 +73,7 @@ func TestCredentials(t *testing.T) {
 	defer server.Close()
 
 	ctx := context.Background()
-	client, _ := NewHTTPClient("urn", server.URL, credentials, httpcli.ExternalClientFactory)
-	client.limiter = ratelimit.NewInstrumentedLimiter("npm", rate.NewLimiter(100, 10))
+	client, _ := NewHTTPClient(server.URL, credentials, httpcli.ExternalClientFactory)
 
 	presentDep, err := reposource.ParseNpmVersionedPackage("left-pad@1.3.0")
 	require.NoError(t, err)

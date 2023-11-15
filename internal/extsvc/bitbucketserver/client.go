@@ -20,13 +20,10 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/segmentio/fasthash/fnv1"
 
-	"github.com/sourcegraph/log"
-
 	"github.com/sourcegraph/sourcegraph/internal/errcode"
 	"github.com/sourcegraph/sourcegraph/internal/extsvc/auth"
 	"github.com/sourcegraph/sourcegraph/internal/httpcli"
 	"github.com/sourcegraph/sourcegraph/internal/metrics"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/sourcegraph/sourcegraph/internal/trace"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 	"github.com/sourcegraph/sourcegraph/schema"
@@ -53,18 +50,13 @@ type Client struct {
 
 	// HTTP Client used to communicate with the API
 	httpClient httpcli.Doer
-
-	// RateLimit is the self-imposed rate limiter (since Bitbucket does not have a
-	// concept of rate limiting in HTTP response headers). Default limits are defined
-	// in extsvc.GetLimitFromConfig
-	rateLimit *ratelimit.InstrumentedLimiter
 }
 
 // NewClient returns an authenticated Bitbucket Server API client with
 // the provided configuration. If a nil httpClient is provided, http.DefaultClient
 // will be used.
-func NewClient(urn string, config *schema.BitbucketServerConnection, httpClient httpcli.Doer) (*Client, error) {
-	client, err := newClient(urn, config, httpClient)
+func NewClient(config *schema.BitbucketServerConnection, httpClient httpcli.Doer) (*Client, error) {
+	client, err := newClient(config, httpClient)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +83,7 @@ func NewClient(urn string, config *schema.BitbucketServerConnection, httpClient 
 	return client, nil
 }
 
-func newClient(urn string, config *schema.BitbucketServerConnection, httpClient httpcli.Doer) (*Client, error) {
+func newClient(config *schema.BitbucketServerConnection, httpClient httpcli.Doer) (*Client, error) {
 	u, err := url.Parse(config.Url)
 	if err != nil {
 		return nil, err
@@ -105,8 +97,6 @@ func newClient(urn string, config *schema.BitbucketServerConnection, httpClient 
 	return &Client{
 		httpClient: httpClient,
 		URL:        u,
-		// Default limits are defined in extsvc.GetLimitFromConfig
-		rateLimit: ratelimit.NewInstrumentedLimiter(urn, ratelimit.NewGlobalRateLimiter(log.Scoped("BitbucketServerClient"), urn)),
 	}, nil
 }
 
@@ -117,7 +107,6 @@ func (c *Client) WithAuthenticator(a auth.Authenticator) *Client {
 	return &Client{
 		httpClient: c.httpClient,
 		URL:        c.URL,
-		rateLimit:  c.rateLimit,
 		Auth:       a,
 	}
 }
@@ -992,10 +981,6 @@ func (c *Client) do(ctx context.Context, req *http.Request, result any) (_ *http
 	}
 
 	if err := c.Auth.Authenticate(req); err != nil {
-		return nil, err
-	}
-
-	if err := c.rateLimit.Wait(ctx); err != nil {
 		return nil, err
 	}
 

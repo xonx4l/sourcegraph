@@ -8,12 +8,10 @@ import (
 	"testing"
 
 	"github.com/dnaeon/go-vcr/cassette"
-	"golang.org/x/time/rate"
 
 	"github.com/sourcegraph/sourcegraph/internal/httpcli"
 	"github.com/sourcegraph/sourcegraph/internal/httptestutil"
 	"github.com/sourcegraph/sourcegraph/internal/lazyregexp"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/sourcegraph/sourcegraph/schema"
 )
 
@@ -44,11 +42,10 @@ func NewTestClient(t testing.TB, name string, update bool) (*Client, func()) {
 		Url:   instanceURL,
 	}
 
-	cli, err := NewClient("urn", c, hc)
+	cli, err := NewClient(c, hc)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cli.rateLimit = ratelimit.NewInstrumentedLimiter("pagure", rate.NewLimiter(100, 10))
 
 	return cli, func() {
 		if err := rec.Stop(); err != nil {

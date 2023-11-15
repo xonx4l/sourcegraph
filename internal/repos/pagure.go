@@ -46,7 +46,7 @@ func NewPagureSource(ctx context.Context, svc *types.ExternalService, cf *httpcl
 		return nil, err
 	}
 
-	cli, err := pagure.NewClient(svc.URN(), &c, httpCli)
+	cli, err := pagure.NewClient(&c, httpCli)
 	if err != nil {
 		return nil, err
 	}

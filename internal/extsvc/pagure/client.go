@@ -10,10 +10,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/sourcegraph/log"
-
 	"github.com/sourcegraph/sourcegraph/internal/httpcli"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 	"github.com/sourcegraph/sourcegraph/lib/iterator"
 	"github.com/sourcegraph/sourcegraph/schema"
@@ -29,16 +26,12 @@ type Client struct {
 
 	// HTTP Client used to communicate with the API
 	httpClient httpcli.Doer
-
-	// RateLimit is the self-imposed rate limiter (since Pagure does not have a concept
-	// of rate limiting in HTTP response headers).
-	rateLimit *ratelimit.InstrumentedLimiter
 }
 
 // NewClient returns an authenticated Pagure API client with
 // the provided configuration. If a nil httpClient is provided, http.DefaultClient
 // will be used.
-func NewClient(urn string, config *schema.PagureConnection, httpClient httpcli.Doer) (*Client, error) {
+func NewClient(config *schema.PagureConnection, httpClient httpcli.Doer) (*Client, error) {
 	u, err := url.Parse(config.Url)
 	if err != nil {
 		return nil, err
@@ -52,7 +45,6 @@ func NewClient(urn string, config *schema.PagureConnection, httpClient httpcli.D
 		Config:     config,
 		URL:        u,
 		httpClient: httpClient,
-		rateLimit:  ratelimit.NewInstrumentedLimiter(urn, ratelimit.NewGlobalRateLimiter(log.Scoped("PagureClient"), urn)),
 	}, nil
 }
 
@@ -132,10 +124,6 @@ func (c *Client) do(ctx context.Context, req *http.Request, result any) (*http.R
 
 	if c.Config.Token != "" {
 		req.Header.Add("Authorization", "token "+c.Config.Token)
-	}
-
-	if err := c.rateLimit.Wait(ctx); err != nil {
-		return nil, err
 	}
 
 	resp, err := c.httpClient.Do(req)

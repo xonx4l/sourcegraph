@@ -35,14 +35,11 @@ import (
 
 	"golang.org/x/net/html"
 
-	"github.com/sourcegraph/log"
-
 	"github.com/sourcegraph/sourcegraph/internal/conf/reposource"
 
 	"github.com/sourcegraph/sourcegraph/internal/errcode"
 	"github.com/sourcegraph/sourcegraph/internal/httpcli"
 	"github.com/sourcegraph/sourcegraph/internal/lazyregexp"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
@@ -53,12 +50,9 @@ type Client struct {
 	urls           []string
 	uncachedClient httpcli.Doer
 	cachedClient   httpcli.Doer
-
-	// Self-imposed rate-limiter. pypi.org does not impose a rate limiting policy.
-	limiter *ratelimit.InstrumentedLimiter
 }
 
-func NewClient(urn string, urls []string, httpfactory *httpcli.Factory) (*Client, error) {
+func NewClient(urls []string, httpfactory *httpcli.Factory) (*Client, error) {
 	uncached, err := httpfactory.Doer(httpcli.NewCachedTransportOpt(httpcli.NoopCache{}, false))
 	if err != nil {
 		return nil, err
@@ -72,7 +66,6 @@ func NewClient(urn string, urls []string, httpfactory *httpcli.Factory) (*Client
 		urls:           urls,
 		uncachedClient: uncached,
 		cachedClient:   cached,
-		limiter:        ratelimit.NewInstrumentedLimiter(urn, ratelimit.NewGlobalRateLimiter(log.Scoped("PyPiClient"), urn)),
 	}, nil
 }
 
@@ -279,10 +272,6 @@ OUTER:
 
 // Download downloads a file located at url, respecting the rate limit.
 func (c *Client) Download(ctx context.Context, url string) (io.ReadCloser, error) {
-	if err := c.limiter.Wait(ctx); err != nil {
-		return nil, err
-	}
-
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -421,10 +410,6 @@ func (c *Client) get(ctx context.Context, doer httpcli.Doer, project reposource.
 	)
 
 	for _, baseURL := range c.urls {
-		if err = c.limiter.Wait(ctx); err != nil {
-			return nil, err
-		}
-
 		reqURL, err = url.Parse(baseURL)
 		if err != nil {
 			return nil, errors.Errorf("invalid proxy URL %q", baseURL)

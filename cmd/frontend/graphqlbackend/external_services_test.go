@@ -661,7 +661,7 @@ func TestExternalServices(t *testing.T) {
 	ctx := context.Background()
 	ratelimit.SetupForTest(t)
 	for _, es := range ess {
-		rl := ratelimit.NewGlobalRateLimiter(logtest.NoOp(t), es.URN())
+		rl := ratelimit.NewGlobalRateLimiter(logtest.NoOp(t), es.URN(), func() *int { return nil })
 		rl.SetTokenBucketConfig(ctx, 10, time.Hour)
 	}
 

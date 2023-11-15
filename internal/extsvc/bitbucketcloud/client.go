@@ -12,15 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sourcegraph/log"
-
 	"github.com/sourcegraph/sourcegraph/internal/errcode"
 	"github.com/sourcegraph/sourcegraph/internal/extsvc"
 	"github.com/sourcegraph/sourcegraph/internal/extsvc/auth"
 	"github.com/sourcegraph/sourcegraph/internal/httpcli"
 	"github.com/sourcegraph/sourcegraph/internal/metrics"
 	"github.com/sourcegraph/sourcegraph/internal/oauthutil"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/sourcegraph/sourcegraph/internal/timeutil"
 	"github.com/sourcegraph/sourcegraph/internal/trace"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
@@ -70,20 +67,16 @@ type client struct {
 	// Auth is the authentication method used when accessing the server. Only
 	// auth.BasicAuth is currently supported.
 	Auth auth.Authenticator
-
-	// RateLimit is the self-imposed rate limiter (since Bitbucket does not have a concept
-	// of rate limiting in HTTP response headers).
-	rateLimit *ratelimit.InstrumentedLimiter
 }
 
 // NewClient creates a new Bitbucket Cloud API client from the given external
 // service configuration. If a nil httpClient is provided, http.DefaultClient
 // will be used.
-func NewClient(urn string, config *schema.BitbucketCloudConnection, httpClient httpcli.Doer) (Client, error) {
-	return newClient(urn, config, httpClient)
+func NewClient(config *schema.BitbucketCloudConnection, httpClient httpcli.Doer) (Client, error) {
+	return newClient(config, httpClient)
 }
 
-func newClient(urn string, config *schema.BitbucketCloudConnection, httpClient httpcli.Doer) (*client, error) {
+func newClient(config *schema.BitbucketCloudConnection, httpClient httpcli.Doer) (*client, error) {
 	if httpClient == nil {
 		httpClient = httpcli.ExternalDoer
 	}
@@ -110,8 +103,6 @@ func newClient(urn string, config *schema.BitbucketCloudConnection, httpClient h
 			Username: config.Username,
 			Password: config.AppPassword,
 		},
-		// Default limits are defined in extsvc.GetLimitFromConfig
-		rateLimit: ratelimit.NewInstrumentedLimiter(urn, ratelimit.NewGlobalRateLimiter(log.Scoped("BitbucketCloudClient"), urn)),
 	}, nil
 }
 
@@ -131,7 +122,6 @@ func (c *client) WithAuthenticator(a auth.Authenticator) Client {
 		httpClient: c.httpClient,
 		URL:        c.URL,
 		Auth:       a,
-		rateLimit:  c.rateLimit,
 	}
 }
 
@@ -230,10 +220,6 @@ func (c *client) do(ctx context.Context, req *http.Request, result any) (code in
 		}
 	}
 	req.Body = io.NopCloser(bytes.NewReader(reqBody))
-
-	if err = c.rateLimit.Wait(ctx); err != nil {
-		return code, err
-	}
 
 	// Because we have no external rate limiting data for Bitbucket Cloud, we do an exponential
 	// back-off and retry for requests where we recieve a 429 Too Many Requests.

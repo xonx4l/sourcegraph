@@ -30,7 +30,7 @@ func NewGoPackagesSource(ctx context.Context, svc *types.ExternalService, cf *ht
 		configDeps: c.Dependencies,
 		scheme:     dependencies.GoPackagesScheme,
 		src: &goPackagesSource{
-			client: gomodproxy.NewClient(svc.URN(), c.Urls, cf),
+			client: gomodproxy.NewClient(c.Urls, cf),
 		},
 	}, nil
 }

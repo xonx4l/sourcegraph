@@ -10,11 +10,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/sourcegraph/log"
-
 	"github.com/sourcegraph/sourcegraph/internal/extsvc/auth"
 	"github.com/sourcegraph/sourcegraph/internal/httpcli"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
@@ -25,10 +22,6 @@ type client struct {
 
 	// URL is the base URL of Gerrit.
 	URL *url.URL
-
-	// RateLimit is the self-imposed rate limiter (since Gerrit does not have a concept
-	// of rate limiting in HTTP response headers).
-	rateLimit *ratelimit.InstrumentedLimiter
 
 	// Authenticator used to authenticate HTTP requests.
 	auther auth.Authenticator
@@ -57,7 +50,7 @@ type Client interface {
 // NewClient returns an authenticated Gerrit API client with
 // the provided configuration. If a nil httpClient is provided, httpcli.ExternalDoer
 // will be used.
-func NewClient(urn string, url *url.URL, creds *AccountCredentials, httpClient httpcli.Doer) (Client, error) {
+func NewClient(url *url.URL, creds *AccountCredentials, httpClient httpcli.Doer) (Client, error) {
 	if httpClient == nil {
 		httpClient = httpcli.ExternalDoer
 	}
@@ -70,7 +63,6 @@ func NewClient(urn string, url *url.URL, creds *AccountCredentials, httpClient h
 	return &client{
 		httpClient: httpClient,
 		URL:        url,
-		rateLimit:  ratelimit.NewInstrumentedLimiter(urn, ratelimit.NewGlobalRateLimiter(log.Scoped("GerritClient"), urn)),
 		auther:     auther,
 	}, nil
 }
@@ -86,7 +78,6 @@ func (c *client) WithAuthenticator(a auth.Authenticator) (Client, error) {
 	return &client{
 		httpClient: c.httpClient,
 		URL:        c.URL,
-		rateLimit:  c.rateLimit,
 		auther:     a,
 	}, nil
 }
@@ -138,10 +129,6 @@ func (c *client) do(ctx context.Context, req *http.Request, result any) (*http.R
 		if err := c.auther.Authenticate(req); err != nil {
 			return nil, err
 		}
-	}
-
-	if err := c.rateLimit.Wait(ctx); err != nil {
-		return nil, err
 	}
 
 	resp, err := c.httpClient.Do(req)

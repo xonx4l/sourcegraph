@@ -148,7 +148,7 @@ func TestGithubSource_CreateChangeset_CreationLimit(t *testing.T) {
 
 	apiURL, err := url.Parse("https://fake.api.github.com")
 	require.NoError(t, err)
-	client := github.NewV4Client("extsvc:github:0", apiURL, nil, cli)
+	client := github.NewV4Client(apiURL, nil, cli)
 	source := &GitHubSource{
 		client: client,
 	}

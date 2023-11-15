@@ -11,12 +11,9 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 
-	"github.com/sourcegraph/log"
-
 	"github.com/sourcegraph/sourcegraph/internal/conf/reposource"
 	"github.com/sourcegraph/sourcegraph/internal/httpcli"
 	"github.com/sourcegraph/sourcegraph/internal/observation"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/sourcegraph/sourcegraph/internal/trace"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
@@ -52,13 +49,12 @@ type HTTPClient struct {
 	registryURL    string
 	uncachedClient httpcli.Doer
 	cachedClient   httpcli.Doer
-	limiter        *ratelimit.InstrumentedLimiter
 	credentials    string
 }
 
 var _ Client = &HTTPClient{}
 
-func NewHTTPClient(urn string, registryURL string, credentials string, httpfactory *httpcli.Factory) (*HTTPClient, error) {
+func NewHTTPClient(registryURL string, credentials string, httpfactory *httpcli.Factory) (*HTTPClient, error) {
 	uncached, err := httpfactory.Doer(httpcli.NewCachedTransportOpt(httpcli.NoopCache{}, false))
 	if err != nil {
 		return nil, err
@@ -72,7 +68,6 @@ func NewHTTPClient(urn string, registryURL string, credentials string, httpfacto
 		registryURL:    registryURL,
 		uncachedClient: uncached,
 		cachedClient:   cached,
-		limiter:        ratelimit.NewInstrumentedLimiter(urn, ratelimit.NewGlobalRateLimiter(log.Scoped("NPMClient"), urn)),
 		credentials:    credentials,
 	}, nil
 }
@@ -149,9 +144,6 @@ func (client *HTTPClient) makeGetRequest(ctx context.Context, doer httpcli.Doer,
 		defer tr.EndWithErr(&err)
 		req = req.WithContext(ctx)
 
-		if err := client.limiter.Wait(ctx); err != nil {
-			return nil, err
-		}
 		return doer.Do(req)
 	}
 

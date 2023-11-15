@@ -71,7 +71,7 @@ func newAuthzProvider(
 		return nil, err
 	}
 
-	bbClient, err := bitbucketcloud.NewClient(c.URN, c.BitbucketCloudConnection, nil)
+	bbClient, err := bitbucketcloud.NewClient(c.BitbucketCloudConnection, nil)
 	if err != nil {
 		return nil, err
 	}

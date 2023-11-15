@@ -614,7 +614,7 @@ func TestGitHubSource_doRecursively(t *testing.T) {
 
 			apiURL, err := url.Parse(srv.URL)
 			require.NoError(t, err)
-			ghCli := github.NewV4Client("", apiURL, nil, nil)
+			ghCli := github.NewV4Client(apiURL, nil, nil)
 			q := newRepositoryQuery("stars:>=5", ghCli, logtest.NoOp(t))
 			q.Limit = 5
 
@@ -994,7 +994,7 @@ func TestRepositoryQuery_DoWithRefinedWindow(t *testing.T) {
 				Query:    tc.query,
 				First:    tc.first,
 				Limit:    tc.limit,
-				Searcher: github.NewV4Client("Test", apiURL, token, cli),
+				Searcher: github.NewV4Client(apiURL, token, cli),
 			}
 
 			results := make(chan *githubResult)
@@ -1066,7 +1066,7 @@ func TestRepositoryQuery_DoSingleRequest(t *testing.T) {
 				Query:    tc.query,
 				First:    tc.first,
 				Limit:    tc.limit,
-				Searcher: github.NewV4Client("Test", apiURL, token, cli),
+				Searcher: github.NewV4Client(apiURL, token, cli),
 			}
 
 			results := make(chan *githubResult)

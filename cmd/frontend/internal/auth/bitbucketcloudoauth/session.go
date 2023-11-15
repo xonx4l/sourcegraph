@@ -51,7 +51,7 @@ func (s *sessionIssuerHelper) GetOrCreateUser(ctx context.Context, token *oauth2
 		conf := &schema.BitbucketCloudConnection{
 			Url: s.baseURL.String(),
 		}
-		client, err = bitbucketcloud.NewClient(s.baseURL.String(), conf, nil)
+		client, err = bitbucketcloud.NewClient(conf, nil)
 		if err != nil {
 			return false, nil, "Could not initialize Bitbucket Cloud client", err
 		}

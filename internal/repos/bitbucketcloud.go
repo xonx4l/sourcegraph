@@ -66,7 +66,7 @@ func newBitbucketCloudSource(logger log.Logger, svc *types.ExternalService, c *s
 		return nil, err
 	}
 
-	client, err := bitbucketcloud.NewClient(svc.URN(), c, cli)
+	client, err := bitbucketcloud.NewClient(c, cli)
 	if err != nil {
 		return nil, err
 	}

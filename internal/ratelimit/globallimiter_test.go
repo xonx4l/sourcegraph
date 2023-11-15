@@ -12,10 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/sourcegraph/sourcegraph/internal/conf"
 	"github.com/sourcegraph/sourcegraph/internal/redispool"
 	"github.com/sourcegraph/sourcegraph/lib/pointers"
-	"github.com/sourcegraph/sourcegraph/schema"
 )
 
 var testBucketName = "extsvc:999:github"
@@ -255,13 +253,9 @@ func TestGlobalRateLimiter_UnconfiguredLimiter(t *testing.T) {
 
 	// Set up the test by initializing the bucket with some initial quota and replenishment interval.
 	ctx := context.Background()
-	// We do NOT call SetTokenBucketConfig here. Instead, we set a sane default.
-	conf.Mock(&conf.Unified{
-		SiteConfiguration: schema.SiteConfiguration{
-			DefaultRateLimit: pointers.Ptr(10),
-		},
-	})
-	defer conf.Mock(nil)
+	rl.getDefaultLimit = func() *int {
+		return pointers.Ptr(10)
+	}
 
 	// First, deplete the burst.
 	require.NoError(t, rl.WaitN(ctx, 10))

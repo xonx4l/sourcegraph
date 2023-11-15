@@ -7,11 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sourcegraph/log"
-
 	"github.com/sourcegraph/sourcegraph/internal/conf/reposource"
 	"github.com/sourcegraph/sourcegraph/internal/httpcli"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
@@ -19,12 +16,9 @@ type Client struct {
 	registryURL string
 
 	uncachedClient httpcli.Doer
-
-	// Self-imposed rate-limiter.
-	limiter *ratelimit.InstrumentedLimiter
 }
 
-func NewClient(urn string, registryURL string, httpfactory *httpcli.Factory) (*Client, error) {
+func NewClient(registryURL string, httpfactory *httpcli.Factory) (*Client, error) {
 	uncached, err := httpfactory.Doer(httpcli.NewCachedTransportOpt(httpcli.NoopCache{}, false))
 	if err != nil {
 		return nil, err
@@ -32,16 +26,11 @@ func NewClient(urn string, registryURL string, httpfactory *httpcli.Factory) (*C
 	return &Client{
 		registryURL:    registryURL,
 		uncachedClient: uncached,
-		limiter:        ratelimit.NewInstrumentedLimiter(urn, ratelimit.NewGlobalRateLimiter(log.Scoped("RubyGemsClient"), urn)),
 	}, nil
 }
 
 func (c *Client) GetPackageContents(ctx context.Context, dep reposource.VersionedPackage) (body io.ReadCloser, err error) {
 	url := fmt.Sprintf("%s/gems/%s-%s.gem", strings.TrimSuffix(c.registryURL, "/"), dep.PackageSyntax(), dep.PackageVersion())
-
-	if err := c.limiter.Wait(ctx); err != nil {
-		return nil, err
-	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {

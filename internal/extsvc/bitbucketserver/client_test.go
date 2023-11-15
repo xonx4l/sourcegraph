@@ -24,10 +24,8 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/time/rate"
 
 	"github.com/sourcegraph/sourcegraph/internal/extsvc/auth"
-	"github.com/sourcegraph/sourcegraph/internal/ratelimit"
 	"github.com/sourcegraph/sourcegraph/schema"
 )
 
@@ -91,9 +89,8 @@ func TestClientKeepsBaseURLPath(t *testing.T) {
 	srvURL, err := url.JoinPath(srv.URL, "/testpath")
 	require.NoError(t, err)
 	bbConf := &schema.BitbucketServerConnection{Url: srvURL}
-	client, err := NewClient("test", bbConf, nil)
+	client, err := NewClient(bbConf, nil)
 	require.NoError(t, err)
-	client.rateLimit = ratelimit.NewInstrumentedLimiter("bitbucket", rate.NewLimiter(100, 10))
 
 	_, _ = client.AuthenticatedUsername(ctx)
 	assert.Equal(t, true, succeeded)
@@ -1105,7 +1102,7 @@ func TestAuth(t *testing.T) {
 		// Ensure that the different configuration types create the right
 		// implicit Authenticator.
 		t.Run("bearer token", func(t *testing.T) {
-			client, err := NewClient("urn", &schema.BitbucketServerConnection{
+			client, err := NewClient(&schema.BitbucketServerConnection{
 				Url:   "http://example.com/",
 				Token: "foo",
 			}, nil)
@@ -1122,7 +1119,7 @@ func TestAuth(t *testing.T) {
 		})
 
 		t.Run("basic auth", func(t *testing.T) {
-			client, err := NewClient("urn", &schema.BitbucketServerConnection{
+			client, err := NewClient(&schema.BitbucketServerConnection{
 				Url:      "http://example.com/",
 				Username: "foo",
 				Password: "bar",
@@ -1140,7 +1137,7 @@ func TestAuth(t *testing.T) {
 		})
 
 		t.Run("OAuth 1 error", func(t *testing.T) {
-			if _, err := NewClient("urn", &schema.BitbucketServerConnection{
+			if _, err := NewClient(&schema.BitbucketServerConnection{
 				Url: "http://example.com/",
 				Authorization: &schema.BitbucketServerAuthorization{
 					Oauth: schema.BitbucketServerOAuth{
@@ -1165,7 +1162,7 @@ func TestAuth(t *testing.T) {
 			pemKey := pem.EncodeToMemory(&pem.Block{Bytes: block})
 			signingKey := base64.StdEncoding.EncodeToString(pemKey)
 
-			client, err := NewClient("urn", &schema.BitbucketServerConnection{
+			client, err := NewClient(&schema.BitbucketServerConnection{
 				Url: "http://example.com/",
 				Authorization: &schema.BitbucketServerAuthorization{
 					Oauth: schema.BitbucketServerOAuth{
@@ -1243,9 +1240,8 @@ func TestClient_WithAuthenticator(t *testing.T) {
 	}
 
 	old := &Client{
-		URL:       uri,
-		rateLimit: &ratelimit.InstrumentedLimiter{Limiter: rate.NewLimiter(10, 10)},
-		Auth:      &auth.BasicAuth{Username: "johnsson", Password: "mothersmaidenname"},
+		URL:  uri,
+		Auth: &auth.BasicAuth{Username: "johnsson", Password: "mothersmaidenname"},
 	}
 
 	newToken := &auth.OAuthBearerToken{Token: "new_token"}
@@ -1260,10 +1256,6 @@ func TestClient_WithAuthenticator(t *testing.T) {
 
 	if newClient.URL != old.URL {
 		t.Fatalf("url: want %q but got %q", old.URL, newClient.URL)
-	}
-
-	if newClient.rateLimit != old.rateLimit {
-		t.Fatalf("RateLimit: want %#v but got %#v", old.rateLimit, newClient.rateLimit)
 	}
 }
 

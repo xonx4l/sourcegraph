@@ -154,15 +154,14 @@ func newGitHubSource(
 	if err != nil {
 		return nil, err
 	}
-	urn := svc.URN()
 
 	var (
 		v3ClientLogger = log.Scoped("source")
-		v3Client       = github.NewV3Client(v3ClientLogger, urn, apiURL, auther, cli)
-		v4Client       = github.NewV4Client(urn, apiURL, auther, cli)
+		v3Client       = github.NewV3Client(v3ClientLogger, apiURL, auther, cli)
+		v4Client       = github.NewV4Client(apiURL, auther, cli)
 
 		searchClientLogger = log.Scoped("search")
-		searchClient       = github.NewV3SearchClient(searchClientLogger, urn, apiURL, auther, cli)
+		searchClient       = github.NewV3SearchClient(searchClientLogger, apiURL, auther, cli)
 	)
 
 	for resource, monitor := range map[string]*ratelimit.Monitor{

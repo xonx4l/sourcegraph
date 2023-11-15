@@ -55,7 +55,7 @@ func NewGerritSource(ctx context.Context, svc *types.ExternalService, cf *httpcl
 		return nil, err
 	}
 
-	cli, err := gerrit.NewClient(svc.URN(), u, &gerrit.AccountCredentials{
+	cli, err := gerrit.NewClient(u, &gerrit.AccountCredentials{
 		Username: c.Username,
 		Password: c.Password,
 	}, httpCli)

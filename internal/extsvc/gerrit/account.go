@@ -67,7 +67,7 @@ func VerifyAccount(ctx context.Context, u *url.URL, creds *AccountCredentials) (
 		return MockVerifyAccount(ctx, u, creds)
 	}
 
-	client, err := NewClient("", u, creds, nil)
+	client, err := NewClient(u, creds, nil)
 	if err != nil {
 		return nil, err
 	}

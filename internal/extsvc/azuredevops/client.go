@@ -61,7 +61,6 @@ type client struct {
 
 	urn string
 
-	internalRateLimiter *ratelimit.InstrumentedLimiter
 	externalRateLimiter *ratelimit.Monitor
 	auth                auth.Authenticator
 	waitForRateLimit    bool
@@ -84,7 +83,6 @@ func NewClient(urn string, url string, auth auth.Authenticator, httpClient httpc
 	return &client{
 		httpClient:          httpClient,
 		URL:                 u,
-		internalRateLimiter: ratelimit.NewInstrumentedLimiter(urn, ratelimit.NewGlobalRateLimiter(log.Scoped("AzureDevOpsClient"), urn)),
 		externalRateLimiter: ratelimit.DefaultMonitorRegistry.GetOrSet(url, auth.Hash(), "rest", &ratelimit.Monitor{HeaderPrefix: "X-"}),
 		auth:                auth,
 		urn:                 urn,
@@ -122,10 +120,6 @@ func (c *client) do(ctx context.Context, req *http.Request, urlOverride string, 
 
 	// Add authentication headers for authenticated requests.
 	if err := c.auth.Authenticate(req); err != nil {
-		return "", err
-	}
-
-	if err := c.internalRateLimiter.Wait(ctx); err != nil {
 		return "", err
 	}
 

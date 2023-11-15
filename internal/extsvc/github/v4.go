@@ -29,9 +29,6 @@ import (
 type V4Client struct {
 	log log.Logger
 
-	// The URN of the external service that the client is derived from.
-	urn string
-
 	// apiURL is the base URL of a GitHub API. It must point to the base URL of the GitHub API. This
 	// is https://api.github.com for GitHub.com and http[s]://[github-enterprise-hostname]/api for
 	// GitHub Enterprise.
@@ -53,9 +50,6 @@ type V4Client struct {
 	// externalRateLimiter is the API rate limit monitor.
 	externalRateLimiter *ratelimit.Monitor
 
-	// internalRateLimiter is our self imposed rate limiter.
-	internalRateLimiter *ratelimit.InstrumentedLimiter
-
 	// waitForRateLimit determines whether or not the client will wait and retry a request if external rate limits are encountered
 	waitForRateLimit bool
 
@@ -68,7 +62,7 @@ type V4Client struct {
 //
 // apiURL must point to the base URL of the GitHub API. See the docstring for
 // V4Client.apiURL.
-func NewV4Client(urn string, apiURL *url.URL, a auth.Authenticator, cli httpcli.Doer) *V4Client {
+func NewV4Client(apiURL *url.URL, a auth.Authenticator, cli httpcli.Doer) *V4Client {
 	apiURL = canonicalizedURL(apiURL)
 	if gitHubDisable {
 		cli = disabledClient{}
@@ -93,17 +87,14 @@ func NewV4Client(urn string, apiURL *url.URL, a auth.Authenticator, cli httpcli.
 		tokenHash = a.Hash()
 	}
 
-	rl := ratelimit.NewInstrumentedLimiter(urn, ratelimit.NewGlobalRateLimiter(log.Scoped("GitHubClient"), urn))
 	rlm := ratelimit.DefaultMonitorRegistry.GetOrSet(apiURL.String(), tokenHash, "graphql", &ratelimit.Monitor{HeaderPrefix: "X-"})
 
 	return &V4Client{
 		log:                 log.Scoped("github.v4"),
-		urn:                 urn,
 		apiURL:              apiURL,
 		githubDotCom:        URLIsGitHubDotCom(apiURL),
 		auth:                a,
 		httpClient:          cli,
-		internalRateLimiter: rl,
 		externalRateLimiter: rlm,
 		waitForRateLimit:    true,
 		maxRateLimitRetries: 2,
@@ -114,7 +105,7 @@ func NewV4Client(urn string, apiURL *url.URL, a auth.Authenticator, cli httpcli.
 // the current V4Client, except authenticated as the GitHub user with the given
 // authenticator instance (most likely a token).
 func (c *V4Client) WithAuthenticator(a auth.Authenticator) *V4Client {
-	return NewV4Client(c.urn, c.apiURL, a, c.httpClient)
+	return NewV4Client(c.apiURL, a, c.httpClient)
 }
 
 // ExternalRateLimiter exposes the rate limit monitor.
@@ -157,10 +148,6 @@ func (c *V4Client) requestGraphQL(ctx context.Context, query string, vars map[st
 	cost, err := estimateGraphQLCost(query)
 	if err != nil {
 		return errors.Wrap(err, "estimating graphql cost")
-	}
-
-	if err := c.internalRateLimiter.WaitN(ctx, cost); err != nil {
-		return errors.Wrap(err, "rate limit")
 	}
 
 	if c.waitForRateLimit {
@@ -388,7 +375,7 @@ func (c *V4Client) fetchGitHubVersion(ctx context.Context) (version *semver.Vers
 
 	// Initiate a v3Client since this requires a V3 API request.
 	logger := c.log.Scoped("fetchGitHubVersion")
-	v3Client := NewV3Client(logger, c.urn, c.apiURL, c.auth, c.httpClient)
+	v3Client := NewV3Client(logger, c.apiURL, c.auth, c.httpClient)
 	v, err := v3Client.GetVersion(ctx)
 	if err != nil {
 		c.log.Warn("Failed to fetch GitHub enterprise version",
@@ -651,7 +638,7 @@ fragment RepositoryFields on Repository {
 func (c *V4Client) GetRepo(ctx context.Context, owner, repo string) (*Repository, error) {
 	logger := c.log.Scoped("GetRepo")
 	// We technically don't need to use the REST API for this but it's just a bit easier.
-	return NewV3Client(logger, c.urn, c.apiURL, c.auth, c.httpClient).GetRepo(ctx, owner, repo)
+	return NewV3Client(logger, c.apiURL, c.auth, c.httpClient).GetRepo(ctx, owner, repo)
 }
 
 // Fork forks the given repository. If org is given, then the repository will
@@ -661,7 +648,7 @@ func (c *V4Client) Fork(ctx context.Context, owner, repo string, org *string, fo
 	// Unfortunately, the GraphQL API doesn't provide a mutation to fork as of
 	// December 2021, so we have to fall back to the REST API.
 	logger := c.log.Scoped("Fork")
-	return NewV3Client(logger, c.urn, c.apiURL, c.auth, c.httpClient).Fork(ctx, owner, repo, org, forkName)
+	return NewV3Client(logger, c.apiURL, c.auth, c.httpClient).Fork(ctx, owner, repo, org, forkName)
 }
 
 // DeleteBranch deletes the given branch from the given repository.
@@ -669,7 +656,7 @@ func (c *V4Client) DeleteBranch(ctx context.Context, owner, repo, branch string)
 	// Unfortunately, the GraphQL API doesn't provide a mutation to delete a ref/branch as
 	// of May 2023, so we have to fall back to the REST API.
 	logger := c.log.Scoped("DeleteBranch")
-	return NewV3Client(logger, c.urn, c.apiURL, c.auth, c.httpClient).DeleteBranch(ctx, owner, repo, branch)
+	return NewV3Client(logger, c.apiURL, c.auth, c.httpClient).DeleteBranch(ctx, owner, repo, branch)
 }
 
 // GetRef gets the contents of a single commit reference in a repository. The ref should
@@ -678,7 +665,7 @@ func (c *V4Client) DeleteBranch(ctx context.Context, owner, repo, branch string)
 func (c *V4Client) GetRef(ctx context.Context, owner, repo, ref string) (*restCommitRef, error) {
 	logger := c.log.Scoped("GetRef")
 	// We technically don't need to use the REST API for this but it's just a bit easier.
-	return NewV3Client(logger, c.urn, c.apiURL, c.auth, c.httpClient).GetRef(ctx, owner, repo, ref)
+	return NewV3Client(logger, c.apiURL, c.auth, c.httpClient).GetRef(ctx, owner, repo, ref)
 }
 
 // CreateCommit creates a commit in the given repository based on a tree object.
@@ -689,7 +676,7 @@ func (c *V4Client) CreateCommit(ctx context.Context, owner, repo, message, tree 
 	// changed by the commit, which is not feasible for creating large commits. Therefore,
 	// we fall back on a REST API endpoint which allows us to create a commit based on a
 	// tree object.
-	return NewV3Client(logger, c.urn, c.apiURL, c.auth, c.httpClient).CreateCommit(ctx, owner, repo, message, tree, parents, author, committer)
+	return NewV3Client(logger, c.apiURL, c.auth, c.httpClient).CreateCommit(ctx, owner, repo, message, tree, parents, author, committer)
 }
 
 // UpdateRef updates the ref of a branch to point to the given commit. The ref should be
@@ -697,7 +684,7 @@ func (c *V4Client) CreateCommit(ctx context.Context, owner, repo, message, tree 
 func (c *V4Client) UpdateRef(ctx context.Context, owner, repo, ref, commit string) (*restUpdatedRef, error) {
 	logger := c.log.Scoped("UpdateRef")
 	// We technically don't need to use the REST API for this but it's just a bit easier.
-	return NewV3Client(logger, c.urn, c.apiURL, c.auth, c.httpClient).UpdateRef(ctx, owner, repo, ref, commit)
+	return NewV3Client(logger, c.apiURL, c.auth, c.httpClient).UpdateRef(ctx, owner, repo, ref, commit)
 }
 
 type RecentCommittersParams struct {
