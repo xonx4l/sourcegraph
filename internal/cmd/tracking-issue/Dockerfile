@@ -1,4 +1,4 @@
-FROM golang:1.20-alpine3.18 AS builder
+FROM golang:1.20-alpine3.18@sha256:f9593279431875e29d178bea563344f0fb0e592adc72e8ae24bdc3b444da1e42 AS builder
 
 WORKDIR /go/src/tracking-issue
 COPY . .
